@@ -5,16 +5,16 @@ from setuptools import setup
 
 
 setup(
-    name="change_this_to_name_of_package",
+    name="nuclease-off-target",
     version="0.1",
     description="CREATE A DESCRIPTION",
-    url="https://github.com/CuriBio/CHANGE_THIS_TO_NAME_OF_REPO",
-    author="Curi Bio",
-    author_email="contact@curibio.com",
+    url="https://github.com/eli88fine/nuclease-off-target",
+    author="Eli Fine",
+    author_email="ejfine@gmail.com",
     license="MIT",
     packages=find_packages("src"),
     package_dir={"": "src"},
-    install_requires=['importlib-metadata ~= 1.0 ; python_version < "3.8"'],
+    install_requires=[],
     zip_safe=False,
     include_package_data=True,
     classifiers=[
