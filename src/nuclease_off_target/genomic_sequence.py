@@ -72,7 +72,7 @@ class GenomicSequence:
         seconds_to_wait = SECONDS_BETWEEN_UCSC_REQUESTS - seconds_since_last_call
         if seconds_to_wait > 0:
             time.sleep(seconds_to_wait)
-        url = f"https://genome.ucsc.edu/cgi-bin/hgc?hgsid=909569459_N8as0yXh8yH3IXZZJcwFBa5u6it3&g=htcGetDna2&table=&i=mixed&getDnaPos={chromosome}%3A{start_coord}-{end_coord}&db={genome}&hgSeq.cdsExon=1&hgSeq.padding5=0&hgSeq.padding3=0&hgSeq.casing=upper&boolshad.hgSeq.maskRepeats=0&hgSeq.repMasking=lower&boolshad.hgSeq.revComp=0&submit=get+DNA"
+        url = f"https://genome.ucsc.edu/cgi-bin/hgc?hgsid=909569459_N8as0yXh8yH3IXZZJcwFBa5u6it3&g=htcGetDna2&table=&i=mixed&getDnaPos={chromosome}%3A{start_coord}-{end_coord}&db={genome}&hgSeq.cdsExon=1&hgSeq.padding5=0&hgSeq.padding3=0&hgSeq.casing=upper&boolshad.hgSeq.maskRepeats=0&hgSeq.repMasking=lower{'' if is_positive_strand else '&hgSeq.revComp=on'}&boolshad.hgSeq.revComp=1&submit=get+DNA"
         sequence = request_sequence_from_ucsc(url)
         set_time_of_last_request_to_ucsc_browser(datetime.datetime.utcnow())
         return cls(genome, chromosome, start_coord, is_positive_strand, sequence)
