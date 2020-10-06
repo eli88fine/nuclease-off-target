@@ -14,7 +14,7 @@ setup(
     license="MIT",
     packages=find_packages("src"),
     package_dir={"": "src"},
-    install_requires=[],
+    install_requires=["requests>=2.24.0", "biopython>=1.78"],
     zip_safe=False,
     include_package_data=True,
     classifiers=[

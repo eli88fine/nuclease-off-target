@@ -30,7 +30,7 @@ jobs:
         include:
           # only enable coverage on the fastest job
           - os: "ubuntu-18.04"
-            python: "3.7"
+            python-version: "3.7"
             ENABLE_CODE_COVERAGE: true
             IS_FASTEST_JOB: true
           - os: "ubuntu-18.04"
