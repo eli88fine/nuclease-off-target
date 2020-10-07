@@ -221,8 +221,8 @@ jobs:
       - name: Uploading to PyPi
         if: github.event.inputs.publish_to_pypi == '1'
         env:
-          TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
 
         run: twine upload dist/*
 
