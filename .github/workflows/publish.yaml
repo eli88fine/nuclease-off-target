@@ -33,7 +33,7 @@ jobs:
             IS_LINUX: true
           - os: "windows-2019"
             IS_WINDOWS: true
-    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    name: Test code in Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -140,8 +140,16 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Extract version number # Adapted from: https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
+        shell: bash
+        run: echo '##[set-output name=package-version;]$(echo $(grep -Po "(?<=    version=\")[0-9.]+" setup.py))'
+        id: extract_version
+
+
       - name: Tagging commit
-        run: git tag "$(grep -Po "(?<=    version=\")[0-9.]+" setup.py)"
+        run: |
+          echo "About to tag with: ${{ steps.extract_version.outputs.package-version }}"
+          git tag "${{ steps.extract_version.outputs.package-version }}"
 
       - name: Pushing Tag
         if: github.event.inputs.publish_to_pypi == '1'
@@ -164,7 +172,7 @@ jobs:
             IS_LINUX: true
           - os: "windows-2019"
             IS_WINDOWS: true
-    name: Publish Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    name: Publish for Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -210,7 +218,7 @@ jobs:
           python setup.py sdist
           python setup.py bdist_wheel
 
-      - name: Pushing Tag
+      - name: Uploading to PyPi
         if: github.event.inputs.publish_to_pypi == '1'
         run: twine upload dist/*
 
