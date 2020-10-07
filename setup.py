@@ -14,7 +14,12 @@ setup(
     license="MIT",
     packages=find_packages("src"),
     package_dir={"": "src"},
-    install_requires=[],
+    install_requires=[
+        "requests>=2.24.0",
+        "biopython>=1.78",
+        "beautifulsoup4>=4.9.3",
+        "parasail>=1.2",
+    ],
     zip_safe=False,
     include_package_data=True,
     classifiers=[

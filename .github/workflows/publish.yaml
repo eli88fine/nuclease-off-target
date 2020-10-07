@@ -1,5 +1,5 @@
 # Based on https://github.com/prettier/prettier/blob/master/.github/workflows/dev-test.yml
-name: Dev
+name: Publish
 
 on:
   workflow_dispatch:
@@ -8,13 +8,10 @@ on:
         description: 'Pytest Randomly Seed'
         required: false
         default: ''
-  schedule:
-    - cron: '0 5 * * *'
-  push:
-    branches:
-      - master
-      - development
-  pull_request:
+      publish_to_pypi:
+        description: 'Publish to PyPi'
+        required: false
+        default: '0'
 
 jobs:
   test:
@@ -23,7 +20,7 @@ jobs:
       matrix:
         os:
           - "ubuntu-18.04"
-          - "windows-2019"
+          #- "windows-2019"  # TODO (Eli 10/7/20): figure out how to check on windows that the branch is main before publishing
         python-version:
             - 3.7
             - 3.8
@@ -31,14 +28,11 @@ jobs:
           # only enable coverage on the fastest job
           - os: "ubuntu-18.04"
             python-version: "3.7"
-            ENABLE_CODE_COVERAGE: true
             IS_FASTEST_JOB: true
           - os: "ubuntu-18.04"
             IS_LINUX: true
-          - os: "windows-2019"
-            IS_WINDOWS: true
-    env:
-      ENABLE_CODE_COVERAGE: ${{ matrix.ENABLE_CODE_COVERAGE }}
+          # - os: "windows-2019"
+          #   IS_WINDOWS: true
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -56,9 +50,19 @@ jobs:
           python -c "import sys; print(sys.version)"
           python -m venv venv
 
+
+      - name: Extract branch name # Adapted from: https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
+        shell: bash
+        run: |
+          git branch -av
+          echo "##[set-output name=sha-of-main-branch;]$(echo $(git branch -av | grep remotes/origin/main | grep -oP "main\s+\K\w+"))"
+        id: extract_branch
+
       - name: Activate virtual environment (Linux/MacOS)
         if: matrix.IS_LINUX == true
-        run: . venv/bin/activate
+        run: |
+          . venv/bin/activate
+          echo ${{ steps.extract_branch.outputs.sha-of-main-branch }}
       - name: Activate virtual environment (Windows)
         if: matrix.IS_WINDOWS == true
         run: venv\Scripts\Activate.ps1
@@ -97,18 +101,6 @@ jobs:
           pip install -r docs/requirements.txt
           SPHINXOPTS="-W" make --directory=docs html # the -W flag treats warnings as errors to cause build failures
 
-      - name: Upload coverage to Codecov
-        # only upload coverage from fastest job
-        if: matrix.IS_FASTEST_JOB == true
-        uses: codecov/codecov-action@v1
-        timeout-minutes: 1   # Tanner (8/11/20): once fundmental issue with codecov timeout is fixed, remove this line and the next
-        continue-on-error: true
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          env_vars: OS,PYTHON
-          name: codecov-umbrella
-          fail_ci_if_error: true
 
       - name: Run prerelease to check packaging compatibilty
         if: matrix.IS_FASTEST_JOB == true
