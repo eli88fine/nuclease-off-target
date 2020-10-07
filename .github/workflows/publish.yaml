@@ -55,7 +55,9 @@ jobs:
         shell: bash
         run: |
           git branch -av
-          echo "##[set-output name=sha-of-main-branch;]$(echo $(git branch -av | grep remotes/origin/main | grep -oP "main\s+\K\w+"))"
+          echo '##[set-output name=sha-of-main-branch;]$(echo $(git branch -av | grep remotes/origin/main | grep -oP "main\s+\K\w+"))'
+          echo '##[set-output name=sha-of-development-branch;]$(echo $(git branch -av | grep remotes/origin/development | grep -oP "development\s+\K\w+"))'
+          echo '##[set-output name=sha-of-current-branch;]$(echo $(git branch -av | grep "*" | grep -oP " \s+\K\w+"))'
         id: extract_branch
 
       - name: Activate virtual environment (Linux/MacOS)
@@ -63,6 +65,8 @@ jobs:
         run: |
           . venv/bin/activate
           echo ${{ steps.extract_branch.outputs.sha-of-main-branch }}
+          echo ${{ steps.extract_branch.outputs.sha-of-development-branch }}
+          echo ${{ steps.extract_branch.outputs.sha-of-current-branch }}
       - name: Activate virtual environment (Windows)
         if: matrix.IS_WINDOWS == true
         run: venv\Scripts\Activate.ps1
