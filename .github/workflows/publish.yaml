@@ -61,6 +61,13 @@ jobs:
           echo '##[set-output name=sha-of-current-branch;]$(echo $(git branch -av | grep "*" | grep -oP " \s+\K\w+"))'
         id: extract_branch
 
+      - name: Display extracted branch information
+        if: matrix.IS_LINUX == true
+        run: |
+          echo "SHA of current branch: ${{ steps.extract_branch.outputs.sha-of-current-branch }}"
+          echo "SHA of main branch: ${{ steps.extract_branch.outputs.sha-of-main-branch }}"
+          echo "SHA of development branch: ${{ steps.extract_branch.outputs.sha-of-development-branch }}"
+
       - name: Is this running on development branch?
         if: matrix.IS_LINUX == true && steps.extract_branch.outputs.sha-of-current-branch == steps.extract_branch.outputs.sha-of-development-branch
         run: echo "Running on development branch."
