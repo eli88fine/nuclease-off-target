@@ -1,5 +1,5 @@
 # Based on https://github.com/prettier/prettier/blob/master/.github/workflows/dev-test.yml
-name: Publish
+name: Publish to PyPi
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
       matrix:
         os:
           - "ubuntu-18.04"
-          #- "windows-2019"  # TODO (Eli 10/7/20): figure out how to check on windows that the branch is main before publishing
+          - "windows-2019"
         python-version:
             - 3.7
             - 3.8
@@ -31,8 +31,8 @@ jobs:
             IS_FASTEST_JOB: true
           - os: "ubuntu-18.04"
             IS_LINUX: true
-          # - os: "windows-2019"
-          #   IS_WINDOWS: true
+          - os: "windows-2019"
+            IS_WINDOWS: true
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -52,6 +52,7 @@ jobs:
 
 
       - name: Extract branch name # Adapted from: https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
+        if: matrix.IS_LINUX == true
         shell: bash
         run: |
           git branch -av
@@ -60,13 +61,24 @@ jobs:
           echo '##[set-output name=sha-of-current-branch;]$(echo $(git branch -av | grep "*" | grep -oP " \s+\K\w+"))'
         id: extract_branch
 
+      - name: Is this running on development branch?
+        if: matrix.IS_LINUX == true && steps.extract_branch.outputs.sha-of-current-branch == steps.extract_branch.outputs.sha-of-development-branch
+        run: echo "Running on development branch."
+        # SHA is: ${{ steps.extract_branch.outputs.sha-of-current-branch }}"
+
+      - name: Is this running on main branch?
+        if: matrix.IS_LINUX == true && steps.extract_branch.outputs.sha-of-current-branch == steps.extract_branch.outputs.sha-of-main-branch
+        run: echo "Running on main branch."
+        # SHA is: ${{ steps.extract_branch.outputs.sha-of-current-branch }}"
+
+      - name: Fail if attempting to publish from a branch other than main
+        if: matrix.IS_LINUX == true && steps.extract_branch.outputs.sha-of-current-branch != steps.extract_branch.outputs.sha-of-main-branch && github.event.inputs.publish_to_pypi == '1'
+        run: exit 1
+
       - name: Activate virtual environment (Linux/MacOS)
         if: matrix.IS_LINUX == true
-        run: |
-          . venv/bin/activate
-          echo ${{ steps.extract_branch.outputs.sha-of-main-branch }}
-          echo ${{ steps.extract_branch.outputs.sha-of-development-branch }}
-          echo ${{ steps.extract_branch.outputs.sha-of-current-branch }}
+        run: . venv/bin/activate
+
       - name: Activate virtual environment (Windows)
         if: matrix.IS_WINDOWS == true
         run: venv\Scripts\Activate.ps1
@@ -85,7 +97,6 @@ jobs:
 
       - name: Run pre-commit hooks
         if: matrix.IS_FASTEST_JOB == true
-        # only enable pre-commit on the fastest job
         run: |
           pre-commit install
           pre-commit run -a
@@ -105,7 +116,102 @@ jobs:
           pip install -r docs/requirements.txt
           SPHINXOPTS="-W" make --directory=docs html # the -W flag treats warnings as errors to cause build failures
 
+      - name: Run prerelease to check packaging compatibilty
+        run: prerelease --no-input
+
+      - name: Build package for release
+        run: |
+          python setup.py sdist
+          python setup.py bdist_wheel
+
+
+  create_tag:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "ubuntu-18.04"
+    name: Creating tag on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Tagging commit
+        run: git tag "$(grep -Po "(?<=    version=\")[0-9.]+" setup.py)"
+
+      - name: Pushing Tag
+        if: github.event.inputs.publish_to_pypi == '1'
+        run: git push --tags
+
+
+  publish:
+    needs: [test, create_tag]
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "ubuntu-18.04"
+          - "windows-2019"
+        python-version:
+            - 3.7
+            - 3.8
+        include:
+          - os: "ubuntu-18.04"
+            IS_LINUX: true
+          - os: "windows-2019"
+            IS_WINDOWS: true
+    name: Publish Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: |
+          python -c "import sys; print(sys.version)"
+          python -m venv venv
+
+      - name: Activate virtual environment (Linux/MacOS)
+        if: matrix.IS_LINUX == true
+        run: . venv/bin/activate
+
+      - name: Activate virtual environment (Windows)
+        if: matrix.IS_WINDOWS == true
+        run: venv\Scripts\Activate.ps1
+
+      - name: Display Pip Version and confirm environment empty
+        run: |
+          pip -V
+          pip freeze
+      - name: Install Dev Dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Install Main Package
+        run: pip install -e .
+
+      - name: Log full installed packages
+        run: pip freeze
 
       - name: Run prerelease to check packaging compatibilty
-        if: matrix.IS_FASTEST_JOB == true
-        run: python3 prerelease.py --no-input
+        run: prerelease --no-input
+
+      - name: Build package for release
+        run: |
+          python setup.py sdist
+          python setup.py bdist_wheel
+
+      - name: Pushing Tag
+        if: github.event.inputs.publish_to_pypi == '1'
+        run: twine upload dist/*
+
+
