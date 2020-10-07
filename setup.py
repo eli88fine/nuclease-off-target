@@ -19,7 +19,6 @@ setup(
         "biopython>=1.78",
         "beautifulsoup4>=4.9.3",
         "parasail>=1.2",
-        "scikit-bio>=0.5.6",
     ],
     zip_safe=False,
     include_package_data=True,
