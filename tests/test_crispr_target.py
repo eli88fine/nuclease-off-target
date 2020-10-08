@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from nuclease_off_target import ALIGNMENT_MATCH_CHARACTER
+from nuclease_off_target import ALIGNMENT_MISMATCH_CHARACTER
 from nuclease_off_target import check_base_match
 from nuclease_off_target import CrisprAlignment
 from nuclease_off_target import CrisprTarget
@@ -41,6 +43,57 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
     assert ca.genomic_sequence.is_positive_strand is False
     assert ca.alignment_result.score == 108
     assert ca.alignment_result.cigar.decode == b"8D20=1X2=7D"
+    assert ca.formatted_alignment == (
+        "GTTAGGACTATTAGCGTGATNGG",
+        ALIGNMENT_MATCH_CHARACTER * 23,
+        "GTTAGGACTATTAGCGTGATGGG",
+    )
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_guide",
+            "test_pam",
+            "test_genome_seq_str",
+            "expected_formatted_alignment",
+            "test_description",
+        )
+    ),
+    [
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            "GGGTAAGGACTATTAGCGTGATGGGGA",
+            (
+                "GTTAGGACTATTAGCGTGATNGG",
+                ALIGNMENT_MATCH_CHARACTER * 2
+                + ALIGNMENT_MISMATCH_CHARACTER
+                + ALIGNMENT_MATCH_CHARACTER * 20,
+                "GTAAGGACTATTAGCGTGATGGG",
+            ),
+            "one mismatch",
+        ),
+    ],
+)
+def test_CrisprAlignment__align_to_genomic_site__formatted_alignment(
+    test_guide,
+    test_pam,
+    test_genome_seq_str,
+    expected_formatted_alignment,
+    test_description,
+):
+    ct = CrisprTarget(test_guide, test_pam, -3)
+    gs = GenomicSequence(
+        "hg19",
+        "chr21",
+        start_coord=999,
+        is_positive_strand=True,
+        sequence=test_genome_seq_str,
+    )
+    ca = CrisprAlignment(ct, gs)
+    ca.perform_alignment()
+    assert ca.formatted_alignment == expected_formatted_alignment
 
 
 @pytest.mark.parametrize(
