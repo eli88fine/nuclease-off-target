@@ -7,8 +7,10 @@ from Bio.Seq import Seq
 import parasail
 from parasail.bindings_v2 import Result
 
-from .constants import ALIGNMENT_MATCH_CHARACTER
-from .constants import ALIGNMENT_MISMATCH_CHARACTER
+from .constants import ALIGNMENT_GAP_CHARACTER
+from .constants import VERTICAL_ALIGNMENT_GAP_CHARACTER
+from .constants import VERTICAL_ALIGNMENT_MATCH_CHARACTER
+from .constants import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
 from .genomic_sequence import GenomicSequence
 
 OUTER_CIGAR_DELETIONS_REGEX = re.compile(r"(\d+)D.*(\d+)D")
@@ -85,7 +87,7 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         for iter_num_chars, iter_cigar_element_type in cigar_elements:
             iter_num_chars = int(iter_num_chars)
             if iter_cigar_element_type == "=":
-                alignment_str += iter_num_chars * ALIGNMENT_MATCH_CHARACTER
+                alignment_str += iter_num_chars * VERTICAL_ALIGNMENT_MATCH_CHARACTER
                 final_crispr_str += temp_crispr_str[:iter_num_chars]
                 temp_crispr_str = temp_crispr_str[iter_num_chars:]
                 final_genomic_str += temp_genome_str[:iter_num_chars]
@@ -94,14 +96,32 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
                 for _ in range(iter_num_chars):
                     crispr_char = temp_crispr_str[0]
                     genome_char = temp_genome_str[0]
-                    alignment_char = ALIGNMENT_MISMATCH_CHARACTER
+                    alignment_char = VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
                     if check_base_match(crispr_char, genome_char):
-                        alignment_char = ALIGNMENT_MATCH_CHARACTER
+                        alignment_char = VERTICAL_ALIGNMENT_MATCH_CHARACTER
                     alignment_str += alignment_char
                     final_crispr_str += crispr_char
                     temp_crispr_str = temp_crispr_str[1:]
                     final_genomic_str += genome_char
                     temp_genome_str = temp_genome_str[1:]
+            elif iter_cigar_element_type == "I":
+                if iter_num_chars != 1:
+                    raise NotImplementedError("Bulges should only be length of 1")
+
+                crispr_char = temp_crispr_str[0]
+                alignment_str += VERTICAL_ALIGNMENT_GAP_CHARACTER
+                final_crispr_str += crispr_char
+                temp_crispr_str = temp_crispr_str[1:]
+                final_genomic_str += ALIGNMENT_GAP_CHARACTER
+            elif iter_cigar_element_type == "D":
+                if iter_num_chars != 1:
+                    raise NotImplementedError("Bulges should only be length of 1")
+                genome_char = temp_genome_str[0]
+                alignment_str += VERTICAL_ALIGNMENT_GAP_CHARACTER
+                final_genomic_str += genome_char
+                temp_genome_str = temp_genome_str[1:]
+                final_crispr_str += ALIGNMENT_GAP_CHARACTER
+
             else:
                 raise NotImplementedError(
                     f"Unrecognized cigar element type: {iter_cigar_element_type}"

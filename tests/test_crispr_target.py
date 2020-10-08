@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-from nuclease_off_target import ALIGNMENT_MATCH_CHARACTER
-from nuclease_off_target import ALIGNMENT_MISMATCH_CHARACTER
+from nuclease_off_target import ALIGNMENT_GAP_CHARACTER
 from nuclease_off_target import check_base_match
 from nuclease_off_target import CrisprAlignment
 from nuclease_off_target import CrisprTarget
 from nuclease_off_target import GenomicSequence
+from nuclease_off_target import VERTICAL_ALIGNMENT_GAP_CHARACTER
+from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
+from nuclease_off_target import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
 import pytest
 
 
@@ -45,7 +47,7 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
     assert ca.alignment_result.cigar.decode == b"8D20=1X2=7D"
     assert ca.formatted_alignment == (
         "GTTAGGACTATTAGCGTGATNGG",
-        ALIGNMENT_MATCH_CHARACTER * 23,
+        VERTICAL_ALIGNMENT_MATCH_CHARACTER * 23,
         "GTTAGGACTATTAGCGTGATGGG",
     )
 
@@ -67,12 +69,53 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
             "GGGTAAGGACTATTAGCGTGATGGGGA",
             (
                 "GTTAGGACTATTAGCGTGATNGG",
-                ALIGNMENT_MATCH_CHARACTER * 2
-                + ALIGNMENT_MISMATCH_CHARACTER
-                + ALIGNMENT_MATCH_CHARACTER * 20,
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 20,
                 "GTAAGGACTATTAGCGTGATGGG",
             ),
             "one mismatch",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "RGG",
+            "TAGGTCGGGACTATTAGCGTGATTGGATT",
+            (
+                "GTTAGGACTATTAGCGTGATRGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 16
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2,
+                "GTCGGGACTATTAGCGTGATTGG",
+            ),
+            "two mismatches in a row and a third in an ambiguous base",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            "GGGTTGGACTATTAGCGTGATGGGGA",
+            (
+                "GTTAGGACTATTAGCGTGATNGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 3
+                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 19,
+                "GTT" + ALIGNMENT_GAP_CHARACTER + "GGACTATTAGCGTGATGGG",
+            ),
+            "one RNA bulge",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            "ACCGTTAGGACGTATTAGCGTGATCGGCT",
+            (
+                "GTTAGGAC" + ALIGNMENT_GAP_CHARACTER + "TATTAGCGTGATNGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 8
+                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 15,
+                "GTTAGGACGTATTAGCGTGATCGG",
+            ),
+            "one DNA bulge",
         ),
     ],
 )
