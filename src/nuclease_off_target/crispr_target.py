@@ -7,6 +7,18 @@ from parasail.bindings_v2 import Result
 from .genomic_sequence import GenomicSequence
 
 
+def check_base_match(possibly_ambiguous_base: str, other_base: str) -> bool:
+    """Return true if match."""
+    if possibly_ambiguous_base == "N":
+        return True
+    if possibly_ambiguous_base == other_base:
+        return True
+    if possibly_ambiguous_base == "R":
+        if other_base in ("A", "G"):
+            return True
+    return False
+
+
 class CrisprTarget:  # pylint:disable=too-few-public-methods
     def __init__(
         self, guide_target: str, pam: str, cut_site_relative_to_pam: int
