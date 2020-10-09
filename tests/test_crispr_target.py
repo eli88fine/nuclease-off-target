@@ -32,7 +32,7 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_same_
     ca.perform_alignment()
     assert ca.genomic_sequence.is_positive_strand is True
     assert ca.alignment_result.score == 108
-    actual_cigar = extract_cigar_str_from_result(ca.alignment_result.cigar.decode)
+    actual_cigar = extract_cigar_str_from_result(ca.alignment_result)
     assert actual_cigar == "5D20=1X2=4D"
 
 
@@ -49,7 +49,7 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
     ca.perform_alignment()
     assert ca.genomic_sequence.is_positive_strand is False
     assert ca.alignment_result.score == 108
-    actual_cigar = extract_cigar_str_from_result(ca.alignment_result.cigar.decode)
+    actual_cigar = extract_cigar_str_from_result(ca.alignment_result)
     assert actual_cigar == "8D20=1X2=7D"
     assert ca.formatted_alignment == (
         "GTTAGGACTATTAGCGTGATNGG",
