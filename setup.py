@@ -6,8 +6,8 @@ from setuptools import setup
 
 setup(
     name="nuclease-off-target",
-    version="0.1",
-    description="CREATE A DESCRIPTION",
+    version="0.2",
+    description="Analyzing Nuclease Off-Target Sites and Activity",
     url="https://github.com/eli88fine/nuclease-off-target",
     author="Eli Fine",
     author_email="ejfine@gmail.com",
@@ -19,6 +19,7 @@ setup(
         "biopython>=1.78",
         "beautifulsoup4>=4.9.3",
         "parasail>=1.2",
+        "stdlib_utils>=0.3.1",
     ],
     zip_safe=False,
     include_package_data=True,
