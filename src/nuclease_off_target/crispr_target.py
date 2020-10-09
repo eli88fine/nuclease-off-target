@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Genomic sequences."""
 import re
+from typing import List
 from typing import Tuple
 
 from Bio.Seq import Seq
@@ -9,6 +10,7 @@ from parasail.bindings_v2 import Result
 from stdlib_utils import is_system_windows
 
 from .constants import ALIGNMENT_GAP_CHARACTER
+from .constants import SEPARATION_BETWEEN_GUIDE_AND_PAM
 from .constants import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from .constants import VERTICAL_ALIGNMENT_MATCH_CHARACTER
 from .constants import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
@@ -56,6 +58,32 @@ def extract_cigar_str_from_result(result: Result) -> str:
     if not isinstance(cigar, str):
         raise NotImplementedError("The decoded CIGAR should always be a string.")
     return cigar
+
+
+def create_space_in_alignment_between_guide_and_pam(  # pylint:disable=invalid-name # Eli (10/9/20): I know this is too long, but unsure a better way to describe it
+    alignment: Tuple[str, str, str], crispr_target: CrisprTarget
+) -> Tuple[str, str, str]:
+    """Adjust an alignment to create visual space between Guide and PAM."""
+    pam_len = len(crispr_target.pam)
+    found_pam_bases_count = 0
+    crispr_str = alignment[0]
+    for pam_start_idx in range(len(crispr_str) - 1, 0, -1):
+        if crispr_str[pam_start_idx] != ALIGNMENT_GAP_CHARACTER:
+            found_pam_bases_count += 1
+        if found_pam_bases_count == pam_len:
+            break
+    else:
+        raise NotImplementedError(
+            "The loop should never complete normally---enough letters to create the PAM should always be found."
+        )
+    new_alignment: List[str] = list()
+    for iter_alignment in alignment:
+        new_alignment.append(
+            iter_alignment[:pam_start_idx]
+            + SEPARATION_BETWEEN_GUIDE_AND_PAM
+            + iter_alignment[pam_start_idx:]
+        )
+    return (new_alignment[0], new_alignment[1], new_alignment[2])
 
 
 def _run_alignment(seq1: str, seq2: str) -> Result:
