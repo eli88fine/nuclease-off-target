@@ -56,6 +56,17 @@ class GenomicSequence:
         self.sequence = Seq(sequence)
         self.end_coord = self.start_coord + len(self.sequence) - 1
 
+    def create_reverse_complement(self) -> "GenomicSequence":
+        cls = self.__class__
+        new_sequence = cls(
+            self.genome,
+            self.chromosome,
+            self.start_coord,
+            not self.is_positive_strand,
+            str(self.sequence.reverse_complement()),
+        )
+        return new_sequence
+
     @classmethod
     def from_coordinates(
         cls,

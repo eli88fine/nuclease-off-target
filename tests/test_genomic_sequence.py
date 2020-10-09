@@ -112,3 +112,20 @@ def test_GenomicSequence_from_coordinates__sets_the_time_of_the_last_ping_to_ucs
 
     # set it back to the value that it was at the beginning of the test
     genomic_sequence.set_time_of_last_request_to_ucsc_browser(actual_original_time)
+
+
+def test_GenomicSequence_create_reverse_complement__reverses_an_existing_sequence():
+    expected_genome = "hg19"
+    expected_chr = "chr2"
+    expected_start = 9291912
+    expected_stop = 9291940
+    gs = GenomicSequence(
+        expected_genome, expected_chr, 9291912, False, "TCTTAGACTAGGACGCCGTATGAGCGCAT"
+    )
+    revcomp = gs.create_reverse_complement()
+    assert revcomp.genome == expected_genome
+    assert revcomp.chromosome == expected_chr
+    assert revcomp.start_coord == expected_start
+    assert revcomp.end_coord == expected_stop
+    assert revcomp.is_positive_strand is True
+    assert str(revcomp.sequence) == "ATGCGCTCATACGGCGTCCTAGTCTAAGA"
