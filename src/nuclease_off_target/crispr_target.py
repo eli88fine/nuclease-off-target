@@ -57,6 +57,12 @@ def extract_cigar_str_from_result(result: Result) -> str:
     return cigar
 
 
+def _run_alignment(seq1: str, seq2: str) -> Result:
+    gap_open = 15
+    result = parasail.sg_dx_trace(seq1, seq2, gap_open, 10, parasail.dnafull)
+    return result
+
+
 class CrisprAlignment:  # pylint:disable=too-few-public-methods
     """Create an alignment of CRISPR to the Genome."""
 
@@ -71,13 +77,9 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
     def perform_alignment(self) -> None:
         """Align CRISPR to Genome."""
         crispr_str = str(self.crispr_target.sequence)
-        forward_result = parasail.sg_dx_trace(
-            crispr_str, str(self.genomic_sequence.sequence), 10, 10, parasail.dnafull
-        )
+        forward_result = _run_alignment(crispr_str, str(self.genomic_sequence.sequence))
         genomic_revcomp = self.genomic_sequence.create_reverse_complement()
-        revcomp_result = parasail.sg_dx_trace(
-            crispr_str, str(genomic_revcomp.sequence), 10, 10, parasail.dnafull
-        )
+        revcomp_result = _run_alignment(crispr_str, str(genomic_revcomp.sequence))
         if forward_result.score >= revcomp_result.score:
             self.alignment_result = forward_result
         else:
@@ -101,7 +103,6 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         final_crispr_str = ""
         final_genomic_str = ""
         alignment_str = ""
-
         for iter_num_chars, iter_cigar_element_type in cigar_elements:
             iter_num_chars = int(iter_num_chars)
             if iter_cigar_element_type == "=":
@@ -151,3 +152,6 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
             alignment_str,
             final_genomic_str,
         )
+        # print ('\n')
+        # for line in self.formatted_alignment:
+        #     print (line)

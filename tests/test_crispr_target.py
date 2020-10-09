@@ -103,10 +103,25 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
             "GGGTTGGACTATTAGCGTGATGGGGA",
             (
                 "GTTAGGACTATTAGCGTGATNGG",
-                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 3
-                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 19,
-                "GTT" + ALIGNMENT_GAP_CHARACTER + "GGACTATTAGCGTGATGGG",
+                "GGTTGGACTATTAGCGTGATGGG",
+            ),
+            "prefers two mismatches to one RNA bulge",
+        ),
+        (
+            "AGTTAGACTATTAGCGTGAT",
+            "NGG",
+            "GGAGTTGACTATTAGCGTGATAGGTA",
+            (
+                "AGTTAGACTATTAGCGTGATNGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 4
+                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 18,
+                "AGTT" + ALIGNMENT_GAP_CHARACTER + "GACTATTAGCGTGATAGG",
             ),
             "one RNA bulge",
         ),
@@ -122,6 +137,28 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
                 "GTTAGGACGTATTAGCGTGATCGG",
             ),
             "one DNA bulge",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCC",
+            "NNGRRT",
+            "TGTGAGTCCTACCACCAGGGCCTTGGGTCCGA",
+            (
+                "GCAGAACTACACACCAGGGCCNNGRRT",
+                # X||XX||||-|||||||||| ||||||
+                VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 4
+                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 10
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 6
+                # VERTICAL_ALIGNMENT_MATCH_CHARACTER * 8
+                # + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                # + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 15,
+                ,
+                "TGAGTCCTAC" + ALIGNMENT_GAP_CHARACTER + "CACCAGGGCCTTGGGT",
+            ),
+            "ensuring that mismatch occurs at first base instead of a gap later",
         ),
     ],
 )

@@ -11,7 +11,7 @@ def ucsc():
 
 
 def alignment_display():
-    assert VERTICAL_ALIGNMENT_MATCH_CHARACTER == "|"
+    assert VERTICAL_ALIGNMENT_MATCH_CHARACTER == " "
     assert VERTICAL_ALIGNMENT_MISMATCH_CHARACTER == "X"
-    assert VERTICAL_ALIGNMENT_GAP_CHARACTER == " "
+    assert VERTICAL_ALIGNMENT_GAP_CHARACTER == "-"
     assert ALIGNMENT_GAP_CHARACTER == "-"
