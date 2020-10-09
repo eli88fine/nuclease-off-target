@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+from types import SimpleNamespace
+
 from nuclease_off_target import ALIGNMENT_GAP_CHARACTER
 from nuclease_off_target import check_base_match
+from nuclease_off_target import crispr_target
 from nuclease_off_target import CrisprAlignment
 from nuclease_off_target import CrisprTarget
+from nuclease_off_target import extract_cigar_str_from_result
 from nuclease_off_target import GenomicSequence
 from nuclease_off_target import VERTICAL_ALIGNMENT_GAP_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
@@ -159,3 +163,24 @@ def test_check_base_match(
 ):
     actual = check_base_match(test_first_base, test_second_base)
     assert actual is expected
+
+
+def test_extract_cigar_str_from_result__windows(mocker):
+    mocker.patch.object(
+        crispr_target, "is_system_windows", autospec=True, return_value=True
+    )
+    expected = "some data"
+    stub_result = SimpleNamespace(cigar=SimpleNamespace(decode=expected))
+    actual = extract_cigar_str_from_result(stub_result)
+    assert actual == expected
+
+
+def test_extract_cigar_str_from_result__linux(mocker):
+    mocker.patch.object(
+        crispr_target, "is_system_windows", autospec=True, return_value=False
+    )
+    stub_result = SimpleNamespace(
+        cigar=SimpleNamespace(decode=b"some encoded utf-8 data")
+    )
+    actual = extract_cigar_str_from_result(stub_result)
+    assert actual == "some encoded utf-8 data"

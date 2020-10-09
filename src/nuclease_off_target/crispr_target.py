@@ -6,6 +6,7 @@ from typing import Tuple
 from Bio.Seq import Seq
 import parasail
 from parasail.bindings_v2 import Result
+from stdlib_utils import is_system_windows
 
 from .constants import ALIGNMENT_GAP_CHARACTER
 from .constants import VERTICAL_ALIGNMENT_GAP_CHARACTER
@@ -39,6 +40,23 @@ class CrisprTarget:  # pylint:disable=too-few-public-methods
         self.sequence = Seq(guide_target + pam)
 
 
+def extract_cigar_str_from_result(result: Result) -> str:
+    """Extract the CIGAR alignment from the Parasail alignment Result.
+
+    For some reason, in Windows the result is not bytes-encoded but in
+    Linux it is. So needed to have a way to handle both.
+    """
+    if is_system_windows():
+        cigar = result.cigar.decode
+        if not isinstance(cigar, str):
+            raise NotImplementedError("The decoded CIGAR should always be a string.")
+        return cigar
+    cigar = result.cigar.decode.decode("utf-8")
+    if not isinstance(cigar, str):
+        raise NotImplementedError("The decoded CIGAR should always be a string.")
+    return cigar
+
+
 class CrisprAlignment:  # pylint:disable=too-few-public-methods
     """Create an alignment of CRISPR to the Genome."""
 
@@ -65,7 +83,7 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         else:
             self.genomic_sequence = genomic_revcomp
             self.alignment_result = revcomp_result
-        cigar = self.alignment_result.cigar.decode.decode("utf-8")
+        cigar = extract_cigar_str_from_result(self.alignment_result)
         match = OUTER_CIGAR_DELETIONS_REGEX.match(cigar)
         if match is None:
             raise NotImplementedError("There should always be a match to this RegEx.")
