@@ -347,3 +347,62 @@ def test_create_space_in_alignment_between_guide_and_pam(
         initial_formatted_alignment, ct
     )
     assert actual == expected_formatted_alignment
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_guide",
+            "test_pam",
+            "test_cut_site_relative_to_pam",
+            "test_genome_start_coord",
+            "test_genome_is_positive_strand",
+            "test_genome_seq_str",
+            "expected_cut_site",
+            "test_description",
+        )
+    ),
+    [
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            -3,
+            100,
+            True,
+            "AGCGTTAGGACTATTAGCGTGATAGGCTA",
+            119,
+            "exact match, positive strand, 3 extra genome letters on each side",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            -3,
+            110,
+            True,
+            "TAAGCGTTAGGACTATTAGCGTGATAGGCTAGG",
+            131,
+            "exact match, positive strand, 5 extra genome letters on each side",
+        ),
+    ],
+)
+def test_CrisprAlignment__align_to_genomic_site__cut_site(
+    test_guide,
+    test_pam,
+    test_cut_site_relative_to_pam,
+    test_genome_start_coord,
+    test_genome_is_positive_strand,
+    test_genome_seq_str,
+    expected_cut_site,
+    test_description,
+):
+    ct = CrisprTarget(test_guide, test_pam, test_cut_site_relative_to_pam)
+    gs = GenomicSequence(
+        "hg19",
+        "chr21",
+        start_coord=test_genome_start_coord,
+        is_positive_strand=test_genome_is_positive_strand,
+        sequence=test_genome_seq_str,
+    )
+    ca = CrisprAlignment(ct, gs)
+    ca.perform_alignment()
+    assert ca.cut_site_coord == expected_cut_site

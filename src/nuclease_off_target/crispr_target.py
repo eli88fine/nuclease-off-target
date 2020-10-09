@@ -60,22 +60,31 @@ def extract_cigar_str_from_result(result: Result) -> str:
     return cigar
 
 
+def _find_index_in_alignment_in_crispr_from_three_prime(  # pylint: disable=invalid-name
+    alignment: Tuple[str, str, str], num_bases: int
+) -> int:
+    found_bases_count = 0
+    crispr_str = alignment[0]
+    for start_idx in range(len(crispr_str) - 1, 0, -1):
+        if crispr_str[start_idx] != ALIGNMENT_GAP_CHARACTER:
+            found_bases_count += 1
+        if found_bases_count == num_bases:
+            break
+    else:
+        raise NotImplementedError(
+            "The loop should never complete normally---enough letters to create the PAM and any additional sequence should always be found."
+        )
+    return start_idx
+
+
 def create_space_in_alignment_between_guide_and_pam(  # pylint:disable=invalid-name # Eli (10/9/20): I know this is too long, but unsure a better way to describe it
     alignment: Tuple[str, str, str], crispr_target: CrisprTarget
 ) -> Tuple[str, str, str]:
     """Adjust an alignment to create visual space between Guide and PAM."""
     pam_len = len(crispr_target.pam)
-    found_pam_bases_count = 0
-    crispr_str = alignment[0]
-    for pam_start_idx in range(len(crispr_str) - 1, 0, -1):
-        if crispr_str[pam_start_idx] != ALIGNMENT_GAP_CHARACTER:
-            found_pam_bases_count += 1
-        if found_pam_bases_count == pam_len:
-            break
-    else:
-        raise NotImplementedError(
-            "The loop should never complete normally---enough letters to create the PAM should always be found."
-        )
+    pam_start_idx = _find_index_in_alignment_in_crispr_from_three_prime(
+        alignment, pam_len
+    )
     new_alignment: List[str] = list()
     for iter_alignment in alignment:
         new_alignment.append(
@@ -102,8 +111,9 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         self.genomic_sequence = genomic_sequence
         self.alignment_result: Result
         self.formatted_alignment: Tuple[str, str, str]
+        self.cut_site_coord: int  # the base 5' of the blunt cut
 
-    def perform_alignment(self) -> None:
+    def perform_alignment(self) -> None:  # pylint:disable=too-many-locals
         """Align CRISPR to Genome."""
         crispr_str = str(self.crispr_target.sequence)
         forward_result = _run_alignment(crispr_str, str(self.genomic_sequence.sequence))
@@ -184,3 +194,18 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         # print("\n")
         # for line in self.formatted_alignment:
         #     print(line)
+
+        cut_site_bases_from_three_prime_end = len(  # pylint: disable=invalid-name
+            self.crispr_target.pam
+        ) + (self.crispr_target.cut_site_relative_to_pam * -1)
+        cut_site_index = _find_index_in_alignment_in_crispr_from_three_prime(
+            self.formatted_alignment, cut_site_bases_from_three_prime_end
+        )
+        five_prime_genome_seq = self.formatted_alignment[2][:cut_site_index]
+        # print(five_prime_genome_seq)
+        self.cut_site_coord = (
+            self.genomic_sequence.start_coord
+            + left_count_to_trim
+            + len(five_prime_genome_seq)
+            - 1
+        )  # subtract 1 to get the base 5' of the cut site
