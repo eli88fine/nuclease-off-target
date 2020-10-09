@@ -8,9 +8,10 @@ from nuclease_off_target import CrisprAlignment
 from nuclease_off_target import CrisprTarget
 from nuclease_off_target import extract_cigar_str_from_result
 from nuclease_off_target import GenomicSequence
-from nuclease_off_target import VERTICAL_ALIGNMENT_GAP_CHARACTER
+from nuclease_off_target import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+from nuclease_off_target import VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
 import pytest
 
 
@@ -119,7 +120,7 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
             (
                 "AGTTAGACTATTAGCGTGATNGG",
                 VERTICAL_ALIGNMENT_MATCH_CHARACTER * 4
-                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                + VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 18,
                 "AGTT" + ALIGNMENT_GAP_CHARACTER + "GACTATTAGCGTGATAGG",
             ),
@@ -132,7 +133,7 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
             (
                 "GTTAGGAC" + ALIGNMENT_GAP_CHARACTER + "TATTAGCGTGATNGG",
                 VERTICAL_ALIGNMENT_MATCH_CHARACTER * 8
-                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                + VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 15,
                 "GTTAGGACGTATTAGCGTGATCGG",
             ),
@@ -149,7 +150,7 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
                 + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 4
-                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                + VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 10
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 6
                 # VERTICAL_ALIGNMENT_MATCH_CHARACTER * 8

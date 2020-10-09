@@ -9,9 +9,10 @@ from parasail.bindings_v2 import Result
 from stdlib_utils import is_system_windows
 
 from .constants import ALIGNMENT_GAP_CHARACTER
-from .constants import VERTICAL_ALIGNMENT_GAP_CHARACTER
+from .constants import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from .constants import VERTICAL_ALIGNMENT_MATCH_CHARACTER
 from .constants import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+from .constants import VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
 from .genomic_sequence import GenomicSequence
 
 OUTER_CIGAR_DELETIONS_REGEX = re.compile(r"(\d+)D.*(\d+)D")
@@ -125,18 +126,18 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
                     temp_genome_str = temp_genome_str[1:]
             elif iter_cigar_element_type == "I":
                 if iter_num_chars != 1:
-                    raise NotImplementedError("Bulges should only be length of 1")
+                    raise NotImplementedError("RNA Bulges should only be length of 1")
 
                 crispr_char = temp_crispr_str[0]
-                alignment_str += VERTICAL_ALIGNMENT_GAP_CHARACTER
+                alignment_str += VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
                 final_crispr_str += crispr_char
                 temp_crispr_str = temp_crispr_str[1:]
                 final_genomic_str += ALIGNMENT_GAP_CHARACTER
             elif iter_cigar_element_type == "D":
                 if iter_num_chars != 1:
-                    raise NotImplementedError("Bulges should only be length of 1")
+                    raise NotImplementedError("DNA Bulges should only be length of 1")
                 genome_char = temp_genome_str[0]
-                alignment_str += VERTICAL_ALIGNMENT_GAP_CHARACTER
+                alignment_str += VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
                 final_genomic_str += genome_char
                 temp_genome_str = temp_genome_str[1:]
                 final_crispr_str += ALIGNMENT_GAP_CHARACTER
@@ -152,6 +153,6 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
             alignment_str,
             final_genomic_str,
         )
-        # print ('\n')
+        # print("\n")
         # for line in self.formatted_alignment:
-        #     print (line)
+        #     print(line)
