@@ -98,16 +98,18 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
         is_dna_bulge = crispr_char == ALIGNMENT_GAP_CHARACTER
         # is_rna_bulge = genome_char == ALIGNMENT_GAP_CHARACTER
         is_mismatch = is_dna_bulge
-        if not is_dna_bulge:
-            is_mismatch = not check_base_match(crispr_char, genome_char)
+        # if not is_dna_bulge:
+        is_mismatch = not check_base_match(crispr_char, genome_char)
         if crispr_base_position == 0:
             if is_mismatch:
                 score += 2
         elif crispr_base_position in (1, 2):
             if is_mismatch:
                 score += 20
-        if not is_dna_bulge:
-            crispr_base_position += 1
+        else:
+            score += 0
+        # if not is_dna_bulge:
+        crispr_base_position += 1
     return score
 
 
