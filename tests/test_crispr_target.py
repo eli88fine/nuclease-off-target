@@ -2,21 +2,37 @@
 from types import SimpleNamespace
 
 from nuclease_off_target import ALIGNMENT_GAP_CHARACTER
+from nuclease_off_target import CAS_VARIETIES
 from nuclease_off_target import check_base_match
+from nuclease_off_target import create_space_in_alignment_between_guide_and_pam
 from nuclease_off_target import crispr_target
 from nuclease_off_target import CrisprAlignment
 from nuclease_off_target import CrisprTarget
 from nuclease_off_target import extract_cigar_str_from_result
 from nuclease_off_target import GenomicSequence
-from nuclease_off_target import VERTICAL_ALIGNMENT_GAP_CHARACTER
+from nuclease_off_target import sa_cas_off_target_score
+from nuclease_off_target import SaCasTarget
+from nuclease_off_target import SEPARATION_BETWEEN_GUIDE_AND_PAM
+from nuclease_off_target import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+from nuclease_off_target import VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
 import pytest
 
 
 def test_CrisprTarget_init_converts_str_sequence_to_BioSeq():
     ct = CrisprTarget("GATTCCGTAGACAGACTAGG", "NGG", -3)
     assert ct.sequence == "GATTCCGTAGACAGACTAGGNGG"
+
+
+def test_SaCasTarget_init_sets_cutsite_and_pam_and_guide():
+    expected_guide = "GCAGAACTACACACCAGGGCC"
+    ct = SaCasTarget(expected_guide)
+    assert ct.guide_target == expected_guide
+    assert (
+        ct.cut_site_relative_to_pam == CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"]
+    )
+    assert ct.pam == CAS_VARIETIES["Sa"]["PAM"]
 
 
 def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_same_strand():
@@ -103,10 +119,25 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
             "GGGTTGGACTATTAGCGTGATGGGGA",
             (
                 "GTTAGGACTATTAGCGTGATNGG",
-                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 3
-                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 19,
-                "GTT" + ALIGNMENT_GAP_CHARACTER + "GGACTATTAGCGTGATGGG",
+                "GGTTGGACTATTAGCGTGATGGG",
+            ),
+            "prefers two mismatches to one RNA bulge",
+        ),
+        (
+            "AGTTAGACTATTAGCGTGAT",
+            "NGG",
+            "GGAGTTGACTATTAGCGTGATAGGTA",
+            (
+                "AGTTAGACTATTAGCGTGATNGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 4
+                + VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 18,
+                "AGTT" + ALIGNMENT_GAP_CHARACTER + "GACTATTAGCGTGATAGG",
             ),
             "one RNA bulge",
         ),
@@ -117,11 +148,28 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
             (
                 "GTTAGGAC" + ALIGNMENT_GAP_CHARACTER + "TATTAGCGTGATNGG",
                 VERTICAL_ALIGNMENT_MATCH_CHARACTER * 8
-                + VERTICAL_ALIGNMENT_GAP_CHARACTER
+                + VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
                 + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 15,
                 "GTTAGGACGTATTAGCGTGATCGG",
             ),
             "one DNA bulge",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCC",
+            "NNGRRT",
+            "TGTGAGTCCTACCACCAGGGCCTTGGGTCCGA",
+            (
+                "GCAGAACTACACACCAGGGCCNNGRRT",
+                VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 4
+                + VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 10
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 6,
+                "TGAGTCCTAC" + ALIGNMENT_GAP_CHARACTER + "CACCAGGGCCTTGGGT",
+            ),
+            "ensuring that mismatch occurs at first base instead of a gap later",
         ),
     ],
 )
@@ -186,3 +234,256 @@ def test_extract_cigar_str_from_result__linux(mocker):
     )
     actual = extract_cigar_str_from_result(stub_result)
     assert actual == "some encoded utf-8 data"
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_guide",
+            "test_pam",
+            "initial_formatted_alignment",
+            "expected_formatted_alignment",
+            "test_description",
+        )
+    ),
+    [
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            (
+                "GTTAGGACTATTAGCGTGATNGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 20,
+                "GTAAGGACTATTAGCGTGATGGG",
+            ),
+            (
+                "GTTAGGACTATTAGCGTGAT" + SEPARATION_BETWEEN_GUIDE_AND_PAM + "NGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 17
+                + SEPARATION_BETWEEN_GUIDE_AND_PAM
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 3,
+                "GTAAGGACTATTAGCGTGAT" + SEPARATION_BETWEEN_GUIDE_AND_PAM + "GGG",
+            ),
+            "one mismatch in guide, SpCas PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            (
+                "GTTAGGACTATTAGCGTGATNGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 21
+                + VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 1,
+                "GTTAGGACTATTAGCGTGATA" + ALIGNMENT_GAP_CHARACTER + "G",
+            ),
+            (
+                "GTTAGGACTATTAGCGTGAT" + SEPARATION_BETWEEN_GUIDE_AND_PAM + "NGG",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 20
+                + SEPARATION_BETWEEN_GUIDE_AND_PAM
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 1,
+                "GTTAGGACTATTAGCGTGAT"
+                + SEPARATION_BETWEEN_GUIDE_AND_PAM
+                + "A"
+                + ALIGNMENT_GAP_CHARACTER
+                + "G",
+            ),
+            "RNA bulge in PAM, SpCas PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            (
+                "GTTAGGACTATTAGCGTGATNG-G",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 22
+                + VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 1,
+                "GTTAGGACTATTAGCGTGATAGTG",
+            ),
+            (
+                "GTTAGGACTATTAGCGTGAT" + SEPARATION_BETWEEN_GUIDE_AND_PAM + "NG-G",
+                VERTICAL_ALIGNMENT_MATCH_CHARACTER * 20
+                + SEPARATION_BETWEEN_GUIDE_AND_PAM
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 1,
+                "GTTAGGACTATTAGCGTGAT" + SEPARATION_BETWEEN_GUIDE_AND_PAM + "AGTG",
+            ),
+            "one DNA bulge in PAM, SpCas PAM",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCC",
+            "NNGRRT",
+            (
+                "GCAGAACTACACACCAGGGCCNNGRRT",
+                VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 4
+                + VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 10
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 6,
+                "TGAGTCCTAC" + ALIGNMENT_GAP_CHARACTER + "CACCAGGGCCTTGGGT",
+            ),
+            (
+                "GCAGAACTACACACCAGGGCC" + SEPARATION_BETWEEN_GUIDE_AND_PAM + "NNGRRT",
+                VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 4
+                + VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 10
+                + SEPARATION_BETWEEN_GUIDE_AND_PAM
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 6,
+                "TGAGTCCTAC"
+                + ALIGNMENT_GAP_CHARACTER
+                + "CACCAGGGCC"
+                + SEPARATION_BETWEEN_GUIDE_AND_PAM
+                + "TTGGGT",
+            ),
+            "SaCas PAM",
+        ),
+    ],
+)
+def test_create_space_in_alignment_between_guide_and_pam(
+    test_guide,
+    test_pam,
+    initial_formatted_alignment,
+    expected_formatted_alignment,
+    test_description,
+):
+    ct = CrisprTarget(test_guide, test_pam, -3)
+    actual = create_space_in_alignment_between_guide_and_pam(
+        initial_formatted_alignment, ct
+    )
+    assert actual == expected_formatted_alignment
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_guide",
+            "test_pam",
+            "test_cut_site_relative_to_pam",
+            "test_genome_start_coord",
+            "test_genome_is_positive_strand",
+            "test_genome_seq_str",
+            "expected_cut_site",
+            "test_description",
+        )
+    ),
+    [
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            -3,
+            100,
+            True,
+            "AGCGTTAGGACTATTAGCGTGATAGGCTA",
+            119,
+            "exact match, positive strand, 3 extra genome letters on each side",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            -4,
+            110,
+            True,
+            "TAAGCGTTAGGACTATTAGCGTGATAGGCTAGG",
+            130,
+            "exact match, positive strand, 5 extra genome letters on each side",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NGG",
+            -3,
+            100,
+            False,
+            "TAGCGTTAGGACTATTAGCGTGATAGGCTA",
+            108,
+            "exact match, negative strand, 4 extra genome letters on 5' and 3 on 3'",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT",
+            "NNGRRT",
+            -3,
+            100,
+            True,
+            "GTACCGTTAGGACGTATTAGCGTGATCAGAGTCT",
+            122,
+            "DNA bulge upstream of PAM, positive strand, 5 extra genome letters on 5'",
+        ),
+        (
+            "AGTTAGACTATTAGCGTGAT",
+            "NGG",
+            -3,
+            100,
+            True,
+            "TTCCGGAGTTGACTATTAGCGTGATAGGTA",
+            121,
+            "RNA bulge upstream of PAM, positive strand, 6 extra genome letters on 5'",
+        ),
+    ],
+)
+def test_CrisprAlignment__align_to_genomic_site__cut_site(
+    test_guide,
+    test_pam,
+    test_cut_site_relative_to_pam,
+    test_genome_start_coord,
+    test_genome_is_positive_strand,
+    test_genome_seq_str,
+    expected_cut_site,
+    test_description,
+):
+    ct = CrisprTarget(test_guide, test_pam, test_cut_site_relative_to_pam)
+    gs = GenomicSequence(
+        "hg19",
+        "chr21",
+        start_coord=test_genome_start_coord,
+        is_positive_strand=test_genome_is_positive_strand,
+        sequence=test_genome_seq_str,
+    )
+    ca = CrisprAlignment(ct, gs)
+    ca.perform_alignment()
+    assert ca.cut_site_coord == expected_cut_site
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_crispr_alignment",
+            "test_genome_alignment",
+            "expected_score",
+            "test_description",
+        )
+    ),
+    [
+        ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATAAGAGT", 0, "exact match",),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGAGA",
+            2,
+            "mismatch in PAM T",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGACA",
+            22,
+            "mismatch in PAM T and last R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGCAA",
+            22,
+            "mismatch in PAM T and first R",
+        ),
+    ],
+)
+def test_sa_cas_off_target_score(
+    test_crispr_alignment, test_genome_alignment, expected_score, test_description,
+):
+    actual = sa_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
+    assert actual == expected_score
