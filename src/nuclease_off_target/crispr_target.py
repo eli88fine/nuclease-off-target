@@ -111,7 +111,7 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         self.genomic_sequence = genomic_sequence
         self.alignment_result: Result
         self.formatted_alignment: Tuple[str, str, str]
-        self.cut_site_coord: int  # the base 5' of the blunt cut
+        self.cut_site_coord: int  # the base 5' (on positive strand...so always closer to start coordinate of chromosome) of the blunt cut
 
     def perform_alignment(self) -> None:  # pylint:disable=too-many-locals
         """Align CRISPR to Genome."""
@@ -201,11 +201,21 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         cut_site_index = _find_index_in_alignment_in_crispr_from_three_prime(
             self.formatted_alignment, cut_site_bases_from_three_prime_end
         )
-        five_prime_genome_seq = self.formatted_alignment[2][:cut_site_index]
         # print(five_prime_genome_seq)
-        self.cut_site_coord = (
-            self.genomic_sequence.start_coord
-            + left_count_to_trim
-            + len(five_prime_genome_seq)
-            - 1
-        )  # subtract 1 to get the base 5' of the cut site
+        five_prime_genome_seq = (self.formatted_alignment[2][:cut_site_index]).replace(
+            ALIGNMENT_GAP_CHARACTER, ""
+        )
+        # print(five_prime_genome_seq)
+        if self.genomic_sequence.is_positive_strand:
+            self.cut_site_coord = (
+                self.genomic_sequence.start_coord
+                + left_count_to_trim
+                + len(five_prime_genome_seq)
+                - 1
+            )  # subtract 1 to get the base 5' of the cut site
+        else:
+            self.cut_site_coord = (
+                self.genomic_sequence.end_coord
+                - left_count_to_trim
+                - len(five_prime_genome_seq)
+            )
