@@ -3,6 +3,7 @@
 import re
 from typing import List
 from typing import Tuple
+from typing import Union
 
 from Bio.Seq import Seq
 import parasail
@@ -10,6 +11,7 @@ from parasail.bindings_v2 import Result
 from stdlib_utils import is_system_windows
 
 from .constants import ALIGNMENT_GAP_CHARACTER
+from .constants import CAS_VARIETIES
 from .constants import SEPARATION_BETWEEN_GUIDE_AND_PAM
 from .constants import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from .constants import VERTICAL_ALIGNMENT_MATCH_CHARACTER
@@ -41,6 +43,14 @@ class CrisprTarget:  # pylint:disable=too-few-public-methods
         self.pam = pam
         self.cut_site_relative_to_pam = cut_site_relative_to_pam
         self.sequence = Seq(guide_target + pam)
+
+
+class SaCasTarget(CrisprTarget):  # pylint:disable=too-few-public-methods
+    pam = str(CAS_VARIETIES["Sa"]["PAM"])
+    cut_site_relative_to_pam = int(CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"])
+
+    def __init__(self, guide_target: str) -> None:
+        super().__init__(guide_target, self.pam, self.cut_site_relative_to_pam)
 
 
 def extract_cigar_str_from_result(result: Result) -> str:
@@ -75,6 +85,30 @@ def _find_index_in_alignment_in_crispr_from_three_prime(  # pylint: disable=inva
             "The loop should never complete normally---enough letters to create the PAM and any additional sequence should always be found."
         )
     return start_idx
+
+
+def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int]:
+    """Calculate COSMID off-target score for SaCas alignment."""
+    score = 0
+    rev_crispr = "".join(reversed(alignment[0]))
+    rev_genome = "".join(reversed(alignment[2]))
+    crispr_base_position = 0
+    for index, crispr_char in enumerate(rev_crispr):
+        genome_char = rev_genome[index]
+        is_dna_bulge = crispr_char == ALIGNMENT_GAP_CHARACTER
+        # is_rna_bulge = genome_char == ALIGNMENT_GAP_CHARACTER
+        is_mismatch = is_dna_bulge
+        if not is_dna_bulge:
+            is_mismatch = not check_base_match(crispr_char, genome_char)
+        if crispr_base_position == 0:
+            if is_mismatch:
+                score += 2
+        elif crispr_base_position in (1, 2):
+            if is_mismatch:
+                score += 20
+        if not is_dna_bulge:
+            crispr_base_position += 1
+    return score
 
 
 def create_space_in_alignment_between_guide_and_pam(  # pylint:disable=invalid-name # Eli (10/9/20): I know this is too long, but unsure a better way to describe it

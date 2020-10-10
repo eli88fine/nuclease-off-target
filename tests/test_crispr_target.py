@@ -2,6 +2,7 @@
 from types import SimpleNamespace
 
 from nuclease_off_target import ALIGNMENT_GAP_CHARACTER
+from nuclease_off_target import CAS_VARIETIES
 from nuclease_off_target import check_base_match
 from nuclease_off_target import create_space_in_alignment_between_guide_and_pam
 from nuclease_off_target import crispr_target
@@ -9,6 +10,8 @@ from nuclease_off_target import CrisprAlignment
 from nuclease_off_target import CrisprTarget
 from nuclease_off_target import extract_cigar_str_from_result
 from nuclease_off_target import GenomicSequence
+from nuclease_off_target import sa_cas_off_target_score
+from nuclease_off_target import SaCasTarget
 from nuclease_off_target import SEPARATION_BETWEEN_GUIDE_AND_PAM
 from nuclease_off_target import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
@@ -20,6 +23,16 @@ import pytest
 def test_CrisprTarget_init_converts_str_sequence_to_BioSeq():
     ct = CrisprTarget("GATTCCGTAGACAGACTAGG", "NGG", -3)
     assert ct.sequence == "GATTCCGTAGACAGACTAGGNGG"
+
+
+def test_SaCasTarget_init_sets_cutsite_and_pam_and_guide():
+    expected_guide = "GCAGAACTACACACCAGGGCC"
+    ct = SaCasTarget(expected_guide)
+    assert ct.guide_target == expected_guide
+    assert (
+        ct.cut_site_relative_to_pam == CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"]
+    )
+    assert ct.pam == CAS_VARIETIES["Sa"]["PAM"]
 
 
 def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_same_strand():
@@ -436,3 +449,41 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
     ca = CrisprAlignment(ct, gs)
     ca.perform_alignment()
     assert ca.cut_site_coord == expected_cut_site
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_crispr_alignment",
+            "test_genome_alignment",
+            "expected_score",
+            "test_description",
+        )
+    ),
+    [
+        ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATAAGAGT", 0, "exact match",),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGAGA",
+            2,
+            "mismatch in PAM T",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGACA",
+            22,
+            "mismatch in PAM T and last R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGCAA",
+            22,
+            "mismatch in PAM T and first R",
+        ),
+    ],
+)
+def test_sa_cas_off_target_score(
+    test_crispr_alignment, test_genome_alignment, expected_score, test_description,
+):
+    actual = sa_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
+    assert actual == expected_score
