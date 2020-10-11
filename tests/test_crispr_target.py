@@ -9,6 +9,7 @@ from nuclease_off_target import crispr_target
 from nuclease_off_target import CrisprAlignment
 from nuclease_off_target import CrisprTarget
 from nuclease_off_target import extract_cigar_str_from_result
+from nuclease_off_target import find_all_possible_alignments
 from nuclease_off_target import GenomicSequence
 from nuclease_off_target import sa_cas_off_target_score
 from nuclease_off_target import SaCasTarget
@@ -127,6 +128,23 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
                 "GGTTGGACTATTAGCGTGATGGG",
             ),
             "prefers two mismatches to one RNA bulge",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCC",
+            "NNGRRT",
+            "AGCAGGAGAACATCACACACCAGGGCCTGGGGGTGGG",
+            (
+                "GCAGAACTACACACCAGGGCCNNGRRT",
+                VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 18
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER,
+                "AGAACATCACACACCAGGGCCTGGGGG",
+            ),
+            "prefers mismatches to two DNA bulges",
         ),
         (
             "AGTTAGACTATTAGCGTGAT",
@@ -487,3 +505,55 @@ def test_sa_cas_off_target_score(
 ):
     actual = sa_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
     assert actual == expected_score
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_crispr_seq",
+            "test_genome_seq",
+            "test_mismatches",
+            "test_rna_bulges",
+            "test_dna_bulges",
+            "expected_alignments",
+            "test_description",
+        )
+    ),
+    [
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGAGTACG",
+            5,
+            3,
+            3,
+            {("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATAAGAGT")},
+            "only finds exact match even when mismatches and bulges allowed",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGCACTGTTAGCGTGATAAGAGTACG",
+            1,
+            0,
+            0,
+            set(),
+            "returns empty set if nothing found",
+        ),
+    ],
+)
+def test_find_all_possible_alignments(
+    test_crispr_seq,
+    test_genome_seq,
+    test_mismatches,
+    test_rna_bulges,
+    test_dna_bulges,
+    expected_alignments,
+    test_description,
+):
+    actual_alignments = find_all_possible_alignments(
+        test_crispr_seq,
+        test_genome_seq,
+        test_mismatches,
+        test_rna_bulges,
+        test_dna_bulges,
+    )
+    assert actual_alignments == expected_alignments
