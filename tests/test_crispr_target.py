@@ -494,9 +494,51 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
         ),
         (
             "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGA" + ALIGNMENT_GAP_CHARACTER + "T",
+            20.3,
+            "RNA bulge for last R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAG" + ALIGNMENT_GAP_CHARACTER + "AT",
+            20.3,
+            "RNA bulge for first R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
+            "GTTAGGACTATTAGCGTGATAAGAGTT",
+            20.3,
+            "DNA bulge for last R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGR" + ALIGNMENT_GAP_CHARACTER + "RT",
+            "GTTAGGACTATTAGCGTGATAAGACGT",
+            20.3,
+            "DNA bulge for first R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
             "GTTAGGACTATTAGCGTGATAAGCAA",
             22,
             "mismatch in PAM T and first R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGCCT",
+            40,
+            "mismatch in both PAM Rs",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAAAGT",
+            40,
+            "mismatch in PAM G",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
+            "GTTAGGACTATTAGCGTGATAATAGTT",
+            60.3,
+            "DNA bulge for last R and mismatch in PAM G",
         ),
     ],
 )

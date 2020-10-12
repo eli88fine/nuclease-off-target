@@ -106,27 +106,36 @@ def _find_index_in_alignment_in_crispr_from_three_prime(  # pylint: disable=inva
 
 def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int]:
     """Calculate COSMID off-target score for SaCas alignment."""
-    score = 0
+    score: Union[float, int] = 0
     rev_crispr = "".join(reversed(alignment[0]))
     rev_genome = "".join(reversed(alignment[2]))
     crispr_base_position = 0
     for index, crispr_char in enumerate(rev_crispr):
         genome_char = rev_genome[index]
         is_dna_bulge = crispr_char == ALIGNMENT_GAP_CHARACTER
-        # is_rna_bulge = genome_char == ALIGNMENT_GAP_CHARACTER
-        is_mismatch = is_dna_bulge
-        # if not is_dna_bulge:
-        is_mismatch = not check_base_match(crispr_char, genome_char)
+        is_rna_bulge = genome_char == ALIGNMENT_GAP_CHARACTER
+        is_mismatch = is_dna_bulge or is_rna_bulge
+        if not is_mismatch:
+            is_mismatch = not check_base_match(crispr_char, genome_char)
         if crispr_base_position == 0:
             if is_mismatch:
                 score += 2
         elif crispr_base_position in (1, 2):
             if is_mismatch:
                 score += 20
+        elif crispr_base_position == 3:
+            if is_mismatch:
+                score += 40
         else:
             score += 0
-        # if not is_dna_bulge:
-        crispr_base_position += 1
+        if is_rna_bulge:
+            if crispr_base_position in (1, 2):
+                score += 0.3
+        if is_dna_bulge:
+            if crispr_base_position in (1, 2):
+                score += 0.3
+        if not is_dna_bulge:
+            crispr_base_position += 1
     return score
 
 
