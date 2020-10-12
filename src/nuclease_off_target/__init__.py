@@ -15,6 +15,7 @@ from .crispr_target import create_space_in_alignment_between_guide_and_pam
 from .crispr_target import CrisprAlignment
 from .crispr_target import CrisprTarget
 from .crispr_target import extract_cigar_str_from_result
+from .crispr_target import find_all_possible_alignments
 from .crispr_target import sa_cas_off_target_score
 from .crispr_target import SaCasTarget
 from .genomic_sequence import GenomicSequence
@@ -29,6 +30,7 @@ __all__ = [
     "CrisprAlignment",
     "sa_cas_off_target_score",
     "check_base_match",
+    "find_all_possible_alignments",
     "extract_cigar_str_from_result",
     "create_space_in_alignment_between_guide_and_pam",
     "VERTICAL_ALIGNMENT_MATCH_CHARACTER",

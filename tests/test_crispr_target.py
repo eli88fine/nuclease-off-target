@@ -9,6 +9,7 @@ from nuclease_off_target import crispr_target
 from nuclease_off_target import CrisprAlignment
 from nuclease_off_target import CrisprTarget
 from nuclease_off_target import extract_cigar_str_from_result
+from nuclease_off_target import find_all_possible_alignments
 from nuclease_off_target import GenomicSequence
 from nuclease_off_target import sa_cas_off_target_score
 from nuclease_off_target import SaCasTarget
@@ -18,6 +19,7 @@ from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
 import pytest
+from pytest import approx
 
 
 def test_CrisprTarget_init_converts_str_sequence_to_BioSeq():
@@ -127,6 +129,23 @@ def test_CrisprAlignment__align_to_genomic_site__when_perfect_alignment_to_rever
                 "GGTTGGACTATTAGCGTGATGGG",
             ),
             "prefers two mismatches to one RNA bulge",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCC",
+            "NNGRRT",
+            "AGCAGGAGAACATCACACACCAGGGCCTGGGGGTGGG",
+            (
+                "GCAGAACTACACACCAGGGCCNNGRRT",
+                VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER * 2
+                + VERTICAL_ALIGNMENT_MATCH_CHARACTER * 18
+                + VERTICAL_ALIGNMENT_MISMATCH_CHARACTER,
+                "AGAACATCACACACCAGGGCCTGGGGG",
+            ),
+            "prefers mismatches to two DNA bulges",
         ),
         (
             "AGTTAGACTATTAGCGTGAT",
@@ -476,9 +495,117 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
         ),
         (
             "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGA" + ALIGNMENT_GAP_CHARACTER + "T",
+            20.3,
+            "RNA bulge for last R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAG" + ALIGNMENT_GAP_CHARACTER + "AT",
+            20.3,
+            "RNA bulge for first R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAA" + ALIGNMENT_GAP_CHARACTER + "AAT",
+            40.3,
+            "RNA bulge for PAM G",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
+            "GTTAGGACTATTAGCGTGATAAGAGTT",
+            20.3,
+            "DNA bulge for last R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGR" + ALIGNMENT_GAP_CHARACTER + "RT",
+            "GTTAGGACTATTAGCGTGATAAGACGT",
+            20.3,
+            "DNA bulge for first R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNG" + ALIGNMENT_GAP_CHARACTER + "RRT",
+            "GTTAGGACTATTAGCGTGATAAGTGGT",
+            40.3,
+            "DNA bulge for PAM G",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNN" + ALIGNMENT_GAP_CHARACTER + "GRRT",
+            "GTTAGGACTATTAGCGTGATAATGGGT",
+            40.3,
+            "DNA bulge for last PAM N",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATN" + ALIGNMENT_GAP_CHARACTER + "NGRRT",
+            "GTTAGGACTATTAGCGTGATAATGGGT",
+            40.3,
+            "DNA bulge for first PAM N",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
             "GTTAGGACTATTAGCGTGATAAGCAA",
             22,
             "mismatch in PAM T and first R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGCCT",
+            40,
+            "mismatch in both PAM Rs",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAAAGT",
+            40,
+            "mismatch in PAM G",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
+            "GTTAGGACTATTAGCGTGATAATAGTT",
+            60.3,
+            "DNA bulge for last R and mismatch in PAM G",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGA" + ALIGNMENT_GAP_CHARACTER + "AAGAAT",
+            6.51,
+            "RNA bulge just before PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT" + ALIGNMENT_GAP_CHARACTER + "NNGRRT",
+            "GTTAGGACTATTAGCGTGATCAAGAAT",
+            6.7,
+            "DNA bulge just before PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTG" + ALIGNMENT_GAP_CHARACTER + "TAAGAAT",
+            5.51,
+            "RNA bulge at position number 2 5' of PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTTCTNNGRRT",
+            9,
+            "Mismatches at positions number 2 and 3 5' of PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGCGATNNGRRT",
+            3,
+            "Mismatch at position number 4 5' of PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GCTAGGACTATTAACGTGATNNGRRT",
+            1.43,
+            "Mismatch at position number 7 and 19 5' of PAM",
+        ),
+        (
+            "ACGTTAGGACTATTAGCGTGATNNGRRT",
+            "GGGTTAGGACTATTAGCGTGATNNGRRT",
+            0.2,
+            "Mismatch at positions number 21 and 22 5' of PAM",
         ),
     ],
 )
@@ -486,4 +613,155 @@ def test_sa_cas_off_target_score(
     test_crispr_alignment, test_genome_alignment, expected_score, test_description,
 ):
     actual = sa_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
-    assert actual == expected_score
+    assert actual == approx(expected_score)
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_crispr_seq",
+            "test_genome_seq",
+            "test_mismatches",
+            "test_total_bulges",
+            "test_rna_bulges",
+            "test_dna_bulges",
+            "expected_alignments",
+            "test_description",
+        )
+    ),
+    [
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATCCGAGTACG",
+            2,
+            6,
+            3,
+            3,
+            {
+                ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCCGAGT"),
+                # --- These two are functionally equivalent, and it may be OK to eliminate in a future version ---
+                ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCCG-AG"),
+                ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCCGA-G"),
+                # -------- #
+                ("GTTAGGACTATTAGCGTGATNNGRR-T", "GTTAGGACTATTAGCGTGATCCGAGTA"),
+                ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCC-GAG"),
+            },
+            "finds exact match and some bulges when  bulges allowed",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGCACTGTTAGCGTGATAAGAGTACG",
+            0,
+            0,
+            0,
+            0,
+            set(),
+            "returns empty set if nothing found",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "TTAGAAATACACACTCAGGGCCAGGAATGGTA",
+            4,
+            1,
+            0,
+            1,
+            {
+                (
+                    "GCAGAACTACACAC" + ALIGNMENT_GAP_CHARACTER + "CAGGGCCNNGRRT",
+                    "TTAGAAATACACACTCAGGGCCAGGAAT",
+                )
+            },
+            "finds DNA bulge",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "TGTGAACTACCAGCAGGGCCTAGGGTGGAG",
+            5,
+            1,
+            1,
+            0,
+            {
+                (
+                    "GCAGAACTACACACCAGGGCCNNGRRT",
+                    "TGTGAACTAC" + ALIGNMENT_GAP_CHARACTER + "CAGCAGGGCCTAGGGT",
+                )
+            },
+            "finds RNA bulge",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "GCTTGAACTCAAACCAGGGCCTTGAACATTCCC",
+            6,
+            2,
+            1,
+            1,
+            {
+                ("GCAG-AACTACACACCAGGGCCNNGRRT", "GCTTGAACT-CAAACCAGGGCCTTGAAC"),
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTTGAACT-CAAACCAGGGCCTTGAAC"),
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTTGAACT-CAAACCAGGGCCTTGAAC"),
+                # -------- #
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTTGAAC-TCAAACCAGGGCCTTGAAC"),
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTTGAAC-TCAAACCAGGGCCTTGAAC"),
+                # -------- #
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTTGAACTC-AAACCAGGGCCTTGAAC"),
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTTGAACTC-AAACCAGGGCCTTGAAC"),
+                # -------- #
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTTGAACTCAA-ACCAGGGCCTTGAAC"),
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTTGAACTCAA-ACCAGGGCCTTGAAC"),
+                # -------- #
+            },
+            "multiple possible alignments",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "GCTTGAACTCAAACCAGGGCCTTGAACATTCCC",
+            6,
+            1,
+            1,
+            1,
+            set(),
+            "no alignments found when total bulge limit is less than sum of RNA+DNA bulges",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "GCTCGAACTCAAACCAGGGCCTCGAACATTCTCCA",
+            5,
+            2,
+            1,
+            1,
+            {
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTCGAACT-CAAACCAGGGCCTCGAAC"),
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTCGAACT-CAAACCAGGGCCTCGAAC"),
+                # -------- #
+            },
+            "another test for multiple possible alignments",
+        ),
+    ],
+)
+def test_find_all_possible_alignments(
+    test_crispr_seq,
+    test_genome_seq,
+    test_mismatches,
+    test_total_bulges,
+    test_rna_bulges,
+    test_dna_bulges,
+    expected_alignments,
+    test_description,
+):
+    actual_alignments = find_all_possible_alignments(
+        test_crispr_seq,
+        test_genome_seq,
+        test_mismatches,
+        test_total_bulges,
+        test_rna_bulges,
+        test_dna_bulges,
+    )
+    # print(len(actual_alignments))
+    # for al1, al2 in actual_alignments:
+    #     print(f"('{al1}',\n '{al2}'),\n")
+    assert actual_alignments == expected_alignments
