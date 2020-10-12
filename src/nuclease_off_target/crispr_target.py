@@ -37,6 +37,21 @@ def check_base_match(possibly_ambiguous_base: str, other_base: str) -> bool:
     return False
 
 
+def _count_mismatches_excluding_gaps(
+    possibly_ambiguous_sequence: str, other_seq: str
+) -> int:
+    count = 0
+    for idx, base1 in enumerate(possibly_ambiguous_sequence):
+        if base1 == ALIGNMENT_GAP_CHARACTER:
+            continue
+        base2 = other_seq[idx]
+        if base2 == ALIGNMENT_GAP_CHARACTER:
+            continue
+        if not check_base_match(base1, base2):
+            count += 1
+    return count
+
+
 class CrisprTarget:  # pylint:disable=too-few-public-methods
     def __init__(
         self, guide_target: str, pam: str, cut_site_relative_to_pam: int
@@ -139,6 +154,38 @@ def _run_alignment(seq1: str, seq2: str) -> Result:
     return result
 
 
+GAP_N_GAP = (
+    ALIGNMENT_GAP_CHARACTER + "N" + ALIGNMENT_GAP_CHARACTER
+)  # declare separately for performance boost during re-use
+
+
+def _is_superfluous_bulge_alignment(crispr_seq: str, genome_seq: str) -> bool:
+    if ALIGNMENT_GAP_CHARACTER not in crispr_seq:
+        return False
+    if ALIGNMENT_GAP_CHARACTER not in genome_seq:
+        return False
+
+    # if GAP_N_GAP in crispr_seq: # -N- is effectively the same as --N, which is a bulge of length 2, which is not allowed
+    #     return True
+
+    mismatch_count = _count_mismatches_excluding_gaps(crispr_seq, genome_seq)
+
+    idx_of_gap_in_crispr = crispr_seq.find(ALIGNMENT_GAP_CHARACTER)
+    idx_of_gap_in_genome = genome_seq.find(ALIGNMENT_GAP_CHARACTER)
+    crispr_without_gap = (
+        crispr_seq[:idx_of_gap_in_crispr] + crispr_seq[idx_of_gap_in_crispr + 1 :]
+    )
+    genome_without_gap = (
+        genome_seq[:idx_of_gap_in_genome] + genome_seq[idx_of_gap_in_genome + 1 :]
+    )
+    new_mismatch_count = _count_mismatches_excluding_gaps(
+        crispr_without_gap, genome_without_gap
+    )
+    if new_mismatch_count == mismatch_count:
+        return True  # Superfluous because both the RNA and DNA bulge could be removed and have the same number of mismatches
+    return _is_superfluous_bulge_alignment(crispr_without_gap, genome_without_gap)
+
+
 def find_all_possible_alignments(
     remaining_crispr_seq: str,
     remaining_genome_seq: str,
@@ -163,15 +210,74 @@ def find_all_possible_alignments(
     """
     if found_alignments is None:
         found_alignments = set()
+    # End the recursion if the whole CRISPR sequence has been aligned
     if len(remaining_crispr_seq) == 0:
-        found_alignments.add(
-            (five_prime_aligned_crispr_seq, five_prime_aligned_genome_seq)
-        )
+        # prune superfluous alignments where offseting bulges could just be deleted
+        if not _is_superfluous_bulge_alignment(
+            five_prime_aligned_crispr_seq, five_prime_aligned_genome_seq
+        ):
+            found_alignments.add(
+                (five_prime_aligned_crispr_seq, five_prime_aligned_genome_seq)
+            )
         return found_alignments
     next_crispr_char = remaining_crispr_seq[0]
     next_genome_char = remaining_genome_seq[0]
+    if (
+        len(five_prime_aligned_crispr_seq) > 1
+    ):  # the first character can't be a DNA or RNA bulge
+        # Spawn a recursion with an additional RNA bulge
+        if remaining_allowed_rna_bulges > 0:
+            if (
+                len(remaining_crispr_seq) > 1
+            ):  # The final CRISPR charactor cannot be a bulge
+                if (
+                    five_prime_aligned_genome_seq[-1] != ALIGNMENT_GAP_CHARACTER
+                ):  # Don't allow back-to-back DNA then RNA bulges
+                    if (
+                        five_prime_aligned_crispr_seq[-1] != ALIGNMENT_GAP_CHARACTER
+                    ):  # Don't allow RNA bulges longer than 1 character
+                        find_all_possible_alignments(
+                            remaining_crispr_seq[1:],
+                            remaining_genome_seq,
+                            remaining_allowed_mismatches,
+                            remaining_allowed_rna_bulges - 1,
+                            remaining_allowed_dna_bulges,
+                            five_prime_aligned_crispr_seq=five_prime_aligned_crispr_seq
+                            + next_crispr_char,
+                            five_prime_aligned_genome_seq=five_prime_aligned_genome_seq
+                            + ALIGNMENT_GAP_CHARACTER,
+                            found_alignments=found_alignments,
+                        )
+
+        # Spawn a recursion with an additional DNA bulge
+        if remaining_allowed_dna_bulges > 0:
+            if (
+                five_prime_aligned_crispr_seq[-1] != ALIGNMENT_GAP_CHARACTER
+            ):  # Don't allow back-to-back RNA then DNA bulges
+                if (
+                    five_prime_aligned_genome_seq[-1] != ALIGNMENT_GAP_CHARACTER
+                ):  # Don't allow DNA bulges longer than 1 character
+                    if (
+                        next_crispr_char != "N"
+                    ):  # it makes no sense to bulge at an "N"...anything is possible there
+
+                        find_all_possible_alignments(
+                            remaining_crispr_seq,
+                            remaining_genome_seq[1:],
+                            remaining_allowed_mismatches,
+                            remaining_allowed_rna_bulges,
+                            remaining_allowed_dna_bulges - 1,
+                            five_prime_aligned_crispr_seq=five_prime_aligned_crispr_seq
+                            + ALIGNMENT_GAP_CHARACTER,
+                            five_prime_aligned_genome_seq=five_prime_aligned_genome_seq
+                            + next_genome_char,
+                            found_alignments=found_alignments,
+                        )
+
     if not check_base_match(next_crispr_char, next_genome_char):
         remaining_allowed_mismatches -= 1
+
+    # End the recursion if more mismatches have been detected than the limit.
     if remaining_allowed_mismatches < 0:
         return found_alignments
     five_prime_aligned_crispr_seq += next_crispr_char

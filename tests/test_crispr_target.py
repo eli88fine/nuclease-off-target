@@ -522,21 +522,76 @@ def test_sa_cas_off_target_score(
     [
         (
             "GTTAGGACTATTAGCGTGATNNGRRT",
-            "GTTAGGACTATTAGCGTGATAAGAGTACG",
-            5,
+            "GTTAGGACTATTAGCGTGATCCGAGTACG",
+            0,
             3,
             3,
-            {("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATAAGAGT")},
-            "only finds exact match even when mismatches and bulges allowed",
+            {("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCCGAGT")},
+            "only finds exact match even when and bulges allowed",
         ),
         (
             "GTTAGGACTATTAGCGTGATNNGRRT",
             "GTTAGCACTGTTAGCGTGATAAGAGTACG",
-            1,
+            0,
             0,
             0,
             set(),
             "returns empty set if nothing found",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "TTAGAAATACACACTCAGGGCCAGGAATGGTA",
+            3,
+            0,
+            1,
+            {
+                (
+                    "GCAGAACTACACAC" + ALIGNMENT_GAP_CHARACTER + "CAGGGCCNNGRRT",
+                    "TTAGAAATACACACTCAGGGCCAGGAAT",
+                )
+            },
+            "finds DNA bulge",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "TGTGAACTACCAGCAGGGCCTAGGGTGGAG",
+            4,
+            1,
+            0,
+            {
+                (
+                    "GCAGAACTACACACCAGGGCCNNGRRT",
+                    "TGTGAACTAC" + ALIGNMENT_GAP_CHARACTER + "CAGCAGGGCCTAGGGT",
+                )
+            },
+            "finds RNA bulge",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "GCTTGAACTCAAACCAGGGCCTTGAACATTCCC",
+            4,
+            1,
+            1,
+            {
+                ("GCAG-AACTACACACCAGGGCCNNGRRT", "GCTTGAACT-CAAACCAGGGCCTTGAAC"),
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTTGAACT-CAAACCAGGGCCTTGAAC"),
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTTGAACT-CAAACCAGGGCCTTGAAC"),
+                # -------- #
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTTGAAC-TCAAACCAGGGCCTTGAAC"),
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTTGAAC-TCAAACCAGGGCCTTGAAC"),
+                # -------- #
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTTGAACTC-AAACCAGGGCCTTGAAC"),
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTTGAACTC-AAACCAGGGCCTTGAAC"),
+                # -------- #
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTTGAACTCAA-ACCAGGGCCTTGAAC"),
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTTGAACTCAA-ACCAGGGCCTTGAAC"),
+                # -------- #
+            },
+            "multiple possible alignments",
         ),
     ],
 )
@@ -556,4 +611,7 @@ def test_find_all_possible_alignments(
         test_rna_bulges,
         test_dna_bulges,
     )
+    # print (len(actual_alignments))
+    # for al1,al2 in actual_alignments:
+    #     print (f"('{al1}',\n '{al2}'),\n")
     assert actual_alignments == expected_alignments
