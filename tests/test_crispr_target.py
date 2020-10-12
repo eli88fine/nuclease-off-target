@@ -541,7 +541,7 @@ def test_sa_cas_off_target_score(
         (
             "GCAGAACTACACACCAGGGCCNNGRRT",
             "TTAGAAATACACACTCAGGGCCAGGAATGGTA",
-            3,
+            4,
             0,
             1,
             {
@@ -555,7 +555,7 @@ def test_sa_cas_off_target_score(
         (
             "GCAGAACTACACACCAGGGCCNNGRRT",
             "TGTGAACTACCAGCAGGGCCTAGGGTGGAG",
-            4,
+            5,
             1,
             0,
             {
@@ -569,7 +569,7 @@ def test_sa_cas_off_target_score(
         (
             "GCAGAACTACACACCAGGGCCNNGRRT",
             "GCTTGAACTCAAACCAGGGCCTTGAACATTCCC",
-            4,
+            6,
             1,
             1,
             {
