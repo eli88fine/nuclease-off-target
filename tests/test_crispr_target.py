@@ -19,6 +19,7 @@ from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
 import pytest
+from pytest import approx
 
 
 def test_CrisprTarget_init_converts_str_sequence_to_BioSeq():
@@ -505,6 +506,12 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
             "RNA bulge for first R",
         ),
         (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAA" + ALIGNMENT_GAP_CHARACTER + "AAT",
+            40.3,
+            "RNA bulge for PAM G",
+        ),
+        (
             "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
             "GTTAGGACTATTAGCGTGATAAGAGTT",
             20.3,
@@ -515,6 +522,24 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
             "GTTAGGACTATTAGCGTGATAAGACGT",
             20.3,
             "DNA bulge for first R",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNG" + ALIGNMENT_GAP_CHARACTER + "RRT",
+            "GTTAGGACTATTAGCGTGATAAGTGGT",
+            40.3,
+            "DNA bulge for PAM G",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNN" + ALIGNMENT_GAP_CHARACTER + "GRRT",
+            "GTTAGGACTATTAGCGTGATAATGGGT",
+            40.3,
+            "DNA bulge for last PAM N",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATN" + ALIGNMENT_GAP_CHARACTER + "NGRRT",
+            "GTTAGGACTATTAGCGTGATAATGGGT",
+            40.3,
+            "DNA bulge for first PAM N",
         ),
         (
             "GTTAGGACTATTAGCGTGATNNGRRT",
@@ -540,13 +565,55 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
             60.3,
             "DNA bulge for last R and mismatch in PAM G",
         ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGA" + ALIGNMENT_GAP_CHARACTER + "AAGAAT",
+            6.51,
+            "RNA bulge just before PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGAT" + ALIGNMENT_GAP_CHARACTER + "NNGRRT",
+            "GTTAGGACTATTAGCGTGATCAAGAAT",
+            6.7,
+            "DNA bulge just before PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTG" + ALIGNMENT_GAP_CHARACTER + "TAAGAAT",
+            5.51,
+            "RNA bulge at position number 2 5' of PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTTCTNNGRRT",
+            9,
+            "Mismatches at positions number 2 and 3 5' of PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGCGATNNGRRT",
+            3,
+            "Mismatch at position number 4 5' of PAM",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GCTAGGACTATTAACGTGATNNGRRT",
+            1.43,
+            "Mismatch at position number 7 and 19 5' of PAM",
+        ),
+        (
+            "ACGTTAGGACTATTAGCGTGATNNGRRT",
+            "GGGTTAGGACTATTAGCGTGATNNGRRT",
+            0.2,
+            "Mismatch at positions number 21 and 22 5' of PAM",
+        ),
     ],
 )
 def test_sa_cas_off_target_score(
     test_crispr_alignment, test_genome_alignment, expected_score, test_description,
 ):
     actual = sa_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
-    assert actual == expected_score
+    assert actual == approx(expected_score)
 
 
 @pytest.mark.parametrize(
