@@ -513,6 +513,7 @@ def test_sa_cas_off_target_score(
             "test_crispr_seq",
             "test_genome_seq",
             "test_mismatches",
+            "test_total_bulges",
             "test_rna_bulges",
             "test_dna_bulges",
             "expected_alignments",
@@ -523,15 +524,25 @@ def test_sa_cas_off_target_score(
         (
             "GTTAGGACTATTAGCGTGATNNGRRT",
             "GTTAGGACTATTAGCGTGATCCGAGTACG",
-            0,
+            2,
+            6,
             3,
             3,
-            {("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCCGAGT")},
-            "only finds exact match even when and bulges allowed",
+            {
+                ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCCGAGT"),
+                # --- These two are functionally equivalent, and it may be OK to eliminate in a future version ---
+                ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCCG-AG"),
+                ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCCGA-G"),
+                # -------- #
+                ("GTTAGGACTATTAGCGTGATNNGRR-T", "GTTAGGACTATTAGCGTGATCCGAGTA"),
+                ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATCC-GAG"),
+            },
+            "finds exact match and some bulges when  bulges allowed",
         ),
         (
             "GTTAGGACTATTAGCGTGATNNGRRT",
             "GTTAGCACTGTTAGCGTGATAAGAGTACG",
+            0,
             0,
             0,
             0,
@@ -542,6 +553,7 @@ def test_sa_cas_off_target_score(
             "GCAGAACTACACACCAGGGCCNNGRRT",
             "TTAGAAATACACACTCAGGGCCAGGAATGGTA",
             4,
+            1,
             0,
             1,
             {
@@ -557,6 +569,7 @@ def test_sa_cas_off_target_score(
             "TGTGAACTACCAGCAGGGCCTAGGGTGGAG",
             5,
             1,
+            1,
             0,
             {
                 (
@@ -570,6 +583,7 @@ def test_sa_cas_off_target_score(
             "GCAGAACTACACACCAGGGCCNNGRRT",
             "GCTTGAACTCAAACCAGGGCCTTGAACATTCCC",
             6,
+            2,
             1,
             1,
             {
@@ -593,12 +607,38 @@ def test_sa_cas_off_target_score(
             },
             "multiple possible alignments",
         ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "GCTTGAACTCAAACCAGGGCCTTGAACATTCCC",
+            6,
+            1,
+            1,
+            1,
+            set(),
+            "no alignments found when total bulge limit is less than sum of RNA+DNA bulges",
+        ),
+        (
+            "GCAGAACTACACACCAGGGCCNNGRRT",
+            "GCTCGAACTCAAACCAGGGCCTCGAACATTCTCCA",
+            5,
+            2,
+            1,
+            1,
+            {
+                # --- These two are functionally equivalent, and it may be OK to eliminate (likely the one with the more PAM-proximal DNA bulge) in a future version ---
+                ("GCA-GAACTACACACCAGGGCCNNGRRT", "GCTCGAACT-CAAACCAGGGCCTCGAAC"),
+                ("GC-AGAACTACACACCAGGGCCNNGRRT", "GCTCGAACT-CAAACCAGGGCCTCGAAC"),
+                # -------- #
+            },
+            "another test for multiple possible alignments",
+        ),
     ],
 )
 def test_find_all_possible_alignments(
     test_crispr_seq,
     test_genome_seq,
     test_mismatches,
+    test_total_bulges,
     test_rna_bulges,
     test_dna_bulges,
     expected_alignments,
@@ -608,10 +648,11 @@ def test_find_all_possible_alignments(
         test_crispr_seq,
         test_genome_seq,
         test_mismatches,
+        test_total_bulges,
         test_rna_bulges,
         test_dna_bulges,
     )
-    # print (len(actual_alignments))
-    # for al1,al2 in actual_alignments:
-    #     print (f"('{al1}',\n '{al2}'),\n")
+    # print(len(actual_alignments))
+    # for al1, al2 in actual_alignments:
+    #     print(f"('{al1}',\n '{al2}'),\n")
     assert actual_alignments == expected_alignments

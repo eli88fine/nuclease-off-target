@@ -182,6 +182,7 @@ def find_all_possible_alignments(
     remaining_crispr_seq: str,
     remaining_genome_seq: str,
     remaining_allowed_mismatches: int,
+    remaining_allowed_total_bulges: int,
     remaining_allowed_rna_bulges: int,
     remaining_allowed_dna_bulges: int,
     five_prime_aligned_crispr_seq: str = "",
@@ -195,8 +196,9 @@ def find_all_possible_alignments(
     remaining_crispr_seq: This is still yet to be aligned (3' direction)
     remaining_genome_seq: This is still yet to be aligned (3' direction). There should always be some extra genome sequence available to align to to allow for DNA bulges.
     remaining_allowed_mismatches: How many mismatches (including bulges) have yet to be used. When this drops below zero the recursion ends.
-    remaining_allowed_rna_bulges: How many RNA bulges have yet to be used. When this drops below zero the recursion ends.
-    remaining_allowed_dna_bulges: How many DNA bulges have yet to be used. When this drops below zero the recursion ends.
+    remaining_allowed_total_bulges: How many RNA+DNA bulges have yet to be used. Recursions to create more bulges cease to be spawned when this reaches zero.
+    remaining_allowed_rna_bulges: How many RNA bulges have yet to be used. Recursions to create more RNA bulges cease to be spawned when this reaches zero.
+    remaining_allowed_dna_bulges: How many DNA bulges have yet to be used. Recursions to create more DNA bulges cease to be spawned when this reaches zero.
 
     Returns: A tuple of the CRISPR alignment string and Genome alignment string.
     """
@@ -221,54 +223,58 @@ def find_all_possible_alignments(
         if (
             remaining_allowed_mismatches > 0
         ):  # bulges also count as a type of mismatch, so there must be allowed mismatches remaining
-            # Spawn a recursion with an additional RNA bulge
-            if remaining_allowed_rna_bulges > 0:
-                if (
-                    len(remaining_crispr_seq) > 1
-                ):  # The final CRISPR charactor cannot be a bulge
+            if remaining_allowed_total_bulges > 0:
+                # Spawn a recursion with an additional RNA bulge
+                if remaining_allowed_rna_bulges > 0:
                     if (
-                        five_prime_aligned_genome_seq[-1] != ALIGNMENT_GAP_CHARACTER
-                    ):  # Don't allow back-to-back DNA then RNA bulges
+                        len(remaining_crispr_seq) > 1
+                    ):  # The final CRISPR charactor cannot be a bulge
                         if (
-                            five_prime_aligned_crispr_seq[-1] != ALIGNMENT_GAP_CHARACTER
-                        ):  # Don't allow RNA bulges longer than 1 character
-                            find_all_possible_alignments(
-                                remaining_crispr_seq[1:],
-                                remaining_genome_seq,
-                                remaining_allowed_mismatches - 1,
-                                remaining_allowed_rna_bulges - 1,
-                                remaining_allowed_dna_bulges,
-                                five_prime_aligned_crispr_seq=five_prime_aligned_crispr_seq
-                                + next_crispr_char,
-                                five_prime_aligned_genome_seq=five_prime_aligned_genome_seq
-                                + ALIGNMENT_GAP_CHARACTER,
-                                found_alignments=found_alignments,
-                            )
+                            five_prime_aligned_genome_seq[-1] != ALIGNMENT_GAP_CHARACTER
+                        ):  # Don't allow back-to-back DNA then RNA bulges
+                            if (
+                                five_prime_aligned_crispr_seq[-1]
+                                != ALIGNMENT_GAP_CHARACTER
+                            ):  # Don't allow RNA bulges longer than 1 character
+                                find_all_possible_alignments(
+                                    remaining_crispr_seq[1:],
+                                    remaining_genome_seq,
+                                    remaining_allowed_mismatches - 1,
+                                    remaining_allowed_total_bulges - 1,
+                                    remaining_allowed_rna_bulges - 1,
+                                    remaining_allowed_dna_bulges,
+                                    five_prime_aligned_crispr_seq=five_prime_aligned_crispr_seq
+                                    + next_crispr_char,
+                                    five_prime_aligned_genome_seq=five_prime_aligned_genome_seq
+                                    + ALIGNMENT_GAP_CHARACTER,
+                                    found_alignments=found_alignments,
+                                )
 
-            # Spawn a recursion with an additional DNA bulge
-            if remaining_allowed_dna_bulges > 0:
-                if (
-                    five_prime_aligned_crispr_seq[-1] != ALIGNMENT_GAP_CHARACTER
-                ):  # Don't allow back-to-back RNA then DNA bulges
+                # Spawn a recursion with an additional DNA bulge
+                if remaining_allowed_dna_bulges > 0:
                     if (
-                        five_prime_aligned_genome_seq[-1] != ALIGNMENT_GAP_CHARACTER
-                    ):  # Don't allow DNA bulges longer than 1 character
+                        five_prime_aligned_crispr_seq[-1] != ALIGNMENT_GAP_CHARACTER
+                    ):  # Don't allow back-to-back RNA then DNA bulges
                         if (
-                            next_crispr_char != "N"
-                        ):  # it makes no sense to bulge at an "N"...anything is possible there
+                            five_prime_aligned_genome_seq[-1] != ALIGNMENT_GAP_CHARACTER
+                        ):  # Don't allow DNA bulges longer than 1 character
+                            if (
+                                next_crispr_char != "N"
+                            ):  # it makes no sense to bulge at an "N"...anything is possible there
 
-                            find_all_possible_alignments(
-                                remaining_crispr_seq,
-                                remaining_genome_seq[1:],
-                                remaining_allowed_mismatches - 1,
-                                remaining_allowed_rna_bulges,
-                                remaining_allowed_dna_bulges - 1,
-                                five_prime_aligned_crispr_seq=five_prime_aligned_crispr_seq
-                                + ALIGNMENT_GAP_CHARACTER,
-                                five_prime_aligned_genome_seq=five_prime_aligned_genome_seq
-                                + next_genome_char,
-                                found_alignments=found_alignments,
-                            )
+                                find_all_possible_alignments(
+                                    remaining_crispr_seq,
+                                    remaining_genome_seq[1:],
+                                    remaining_allowed_mismatches - 1,
+                                    remaining_allowed_total_bulges - 1,
+                                    remaining_allowed_rna_bulges,
+                                    remaining_allowed_dna_bulges - 1,
+                                    five_prime_aligned_crispr_seq=five_prime_aligned_crispr_seq
+                                    + ALIGNMENT_GAP_CHARACTER,
+                                    five_prime_aligned_genome_seq=five_prime_aligned_genome_seq
+                                    + next_genome_char,
+                                    found_alignments=found_alignments,
+                                )
 
     if not check_base_match(next_crispr_char, next_genome_char):
         remaining_allowed_mismatches -= 1
@@ -284,6 +290,7 @@ def find_all_possible_alignments(
         remaining_crispr_seq,
         remaining_genome_seq,
         remaining_allowed_mismatches,
+        remaining_allowed_total_bulges,
         remaining_allowed_rna_bulges,
         remaining_allowed_dna_bulges,
         five_prime_aligned_crispr_seq=five_prime_aligned_crispr_seq,
