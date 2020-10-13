@@ -129,3 +129,115 @@ def test_GenomicSequence_create_reverse_complement__reverses_an_existing_sequenc
     assert revcomp.end_coord == expected_stop
     assert revcomp.is_positive_strand is True
     assert str(revcomp.sequence) == "ATGCGCTCATACGGCGTCCTAGTCTAAGA"
+
+
+def test_GenomicSequence_create_three_prime_trim__on_positive_strand():
+    expected_genome = "hg19"
+    expected_chr = "chr2"
+    expected_start = 9291912
+    initial_seq = "TCTTAGACTAGGACGCCGTATGAGCGCAT"
+    initial_end = expected_start + len(initial_seq) - 1
+    expected_is_positive_strand = True
+    gs = GenomicSequence(
+        expected_genome,
+        expected_chr,
+        expected_start,
+        expected_is_positive_strand,
+        initial_seq,
+    )
+
+    # confirm pre-condition
+    assert gs.end_coord == initial_end
+
+    actual = gs.create_three_prime_trim(10)
+    assert actual != gs
+    assert actual.genome == expected_genome
+    assert actual.chromosome == expected_chr
+    assert actual.start_coord == expected_start
+    assert actual.end_coord == initial_end - 10
+    assert actual.is_positive_strand is expected_is_positive_strand
+    assert str(actual.sequence) == "TCTTAGACTAGGACGCCGT"
+
+
+def test_GenomicSequence_create_three_prime_trim__on_negative_strand():
+    expected_genome = "hg38"
+    expected_chr = "chr5"
+    expected_start = 188232
+    initial_seq = "ACGATGAGAGCCTATATGAGTCTATTGCAGCAGCAGT"
+    initial_end = expected_start + len(initial_seq) - 1
+    expected_is_positive_strand = False
+    gs = GenomicSequence(
+        expected_genome,
+        expected_chr,
+        expected_start,
+        expected_is_positive_strand,
+        initial_seq,
+    )
+
+    # confirm pre-condition
+    assert gs.end_coord == initial_end
+
+    actual = gs.create_three_prime_trim(5)
+    assert actual != gs
+    assert actual.genome == expected_genome
+    assert actual.chromosome == expected_chr
+    assert actual.start_coord == expected_start + 5
+    assert actual.end_coord == initial_end
+    assert actual.is_positive_strand is expected_is_positive_strand
+    assert str(actual.sequence) == "ACGATGAGAGCCTATATGAGTCTATTGCAGCA"
+
+
+def test_GenomicSequence_create_five_prime_trim__on_positive_strand():
+    expected_genome = "mm10"
+    expected_chr = "chr4"
+    expected_start = 1234567
+    initial_seq = "TATGGAGAGCCGAT"
+    initial_end = expected_start + len(initial_seq) - 1
+    expected_is_positive_strand = True
+    gs = GenomicSequence(
+        expected_genome,
+        expected_chr,
+        expected_start,
+        expected_is_positive_strand,
+        initial_seq,
+    )
+
+    # confirm pre-condition
+    assert gs.end_coord == initial_end
+
+    actual = gs.create_five_prime_trim(3)
+    assert actual != gs
+    assert actual.genome == expected_genome
+    assert actual.chromosome == expected_chr
+    assert actual.start_coord == expected_start + 3
+    assert actual.end_coord == initial_end
+    assert actual.is_positive_strand is expected_is_positive_strand
+    assert str(actual.sequence) == "GGAGAGCCGAT"
+
+
+def test_GenomicSequence_create_five_prime_trim__on_negative_strand():
+    expected_genome = "hg18"
+    expected_chr = "chrX"
+    expected_start = 765432
+    initial_seq = "ATTGAGCGCTAGCAGCATGGTA"
+    initial_end = expected_start + len(initial_seq) - 1
+    expected_is_positive_strand = False
+    gs = GenomicSequence(
+        expected_genome,
+        expected_chr,
+        expected_start,
+        expected_is_positive_strand,
+        initial_seq,
+    )
+
+    # confirm pre-condition
+    assert gs.end_coord == initial_end
+
+    actual = gs.create_five_prime_trim(4)
+    assert actual != gs
+    assert actual.genome == expected_genome
+    assert actual.chromosome == expected_chr
+    assert actual.start_coord == expected_start
+    assert actual.end_coord == initial_end - 4
+    assert actual.is_positive_strand is expected_is_positive_strand
+    assert str(actual.sequence) == "AGCGCTAGCAGCATGGTA"

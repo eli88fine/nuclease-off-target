@@ -21,7 +21,7 @@ from .constants import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
 from .constants import VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
 from .genomic_sequence import GenomicSequence
 
-OUTER_CIGAR_DELETIONS_REGEX = re.compile(r"(\d+)D.*(\d+)D")
+OUTER_CIGAR_DELETIONS_REGEX = re.compile(r"(\d+)D.*\D(\d+)D")
 CIGAR_ELEMENT_REGEX = re.compile(r"(\d+)([\=XDI])")
 
 
@@ -353,7 +353,10 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         self.cut_site_coord: int  # the base 5' (on positive strand...so always closer to start coordinate of chromosome) of the blunt cut
 
     def perform_alignment(self) -> None:  # pylint:disable=too-many-locals
-        """Align CRISPR to Genome."""
+        """Align CRISPR to Genome.
+
+        Deprecated
+        """
         crispr_str = str(self.crispr_target.sequence)
         forward_result = _run_alignment(crispr_str, str(self.genomic_sequence.sequence))
         genomic_revcomp = self.genomic_sequence.create_reverse_complement()
