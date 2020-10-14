@@ -168,15 +168,15 @@ jobs:
       matrix:
         os:
           - "ubuntu-18.04"
-          - "windows-2019"
+          # - "windows-2019"
         python-version:
             - 3.7
-            - 3.8
+            # - 3.8
         include:
           - os: "ubuntu-18.04"
             IS_LINUX: true
-          - os: "windows-2019"
-            IS_WINDOWS: true
+          # - os: "windows-2019"
+          #   IS_WINDOWS: true
     name: Publish for Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -198,9 +198,9 @@ jobs:
         if: matrix.IS_LINUX == true
         run: . venv/bin/activate
 
-      - name: Activate virtual environment (Windows)
-        if: matrix.IS_WINDOWS == true
-        run: venv\Scripts\Activate.ps1
+      # - name: Activate virtual environment (Windows)
+      #   if: matrix.IS_WINDOWS == true
+      #   run: venv\Scripts\Activate.ps1
 
       - name: Display Pip Version and confirm environment empty
         run: |

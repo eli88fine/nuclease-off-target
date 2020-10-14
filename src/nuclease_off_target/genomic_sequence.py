@@ -67,6 +67,48 @@ class GenomicSequence:
         )
         return new_sequence
 
+    def create_three_prime_trim(self, num_bases_to_trim: int) -> "GenomicSequence":
+        """Create an instance with some 3' bases trimmed from the sequence."""
+        cls = self.__class__
+        if self.is_positive_strand:
+            new_sequence = cls(
+                self.genome,
+                self.chromosome,
+                self.start_coord,
+                self.is_positive_strand,
+                str(self.sequence)[:-num_bases_to_trim],
+            )
+            return new_sequence
+        new_sequence = cls(
+            self.genome,
+            self.chromosome,
+            self.start_coord + num_bases_to_trim,
+            self.is_positive_strand,
+            str(self.sequence)[:-num_bases_to_trim],
+        )
+        return new_sequence
+
+    def create_five_prime_trim(self, num_bases_to_trim: int) -> "GenomicSequence":
+        """Create an instance with some 5' bases trimmed from the sequence."""
+        cls = self.__class__
+        if self.is_positive_strand:
+            new_sequence = cls(
+                self.genome,
+                self.chromosome,
+                self.start_coord + num_bases_to_trim,
+                self.is_positive_strand,
+                str(self.sequence)[num_bases_to_trim:],
+            )
+            return new_sequence
+        new_sequence = cls(
+            self.genome,
+            self.chromosome,
+            self.start_coord,
+            self.is_positive_strand,
+            str(self.sequence)[num_bases_to_trim:],
+        )
+        return new_sequence
+
     @classmethod
     def from_coordinates(
         cls,
