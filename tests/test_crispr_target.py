@@ -820,7 +820,7 @@ def test_CrisprAlignment__find_optimal_alignment__located_on_negative_strand__fl
     )
     ct = SaCasTarget("GCAGAACTACACACCAGGGCC")
     ca = CrisprAlignment(ct, gs)
-    ca.find_optimal_alignment(5, 1, 0, 1)
+    ca.find_optimal_alignment(7, 1, 0, 1)
     assert ca.genomic_sequence.is_positive_strand is False
     assert ca.formatted_alignment == (
         "GCAGAACTACACACCAGGGCCNNGRRT",
