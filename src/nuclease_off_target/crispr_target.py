@@ -472,6 +472,7 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         )
         if best_scoring_alignment == best_scoring_opposite_strand_alignment:
             self.genomic_sequence = opposite_strand_genomic_sequence
+
         self.formatted_alignment = (
             best_scoring_alignment[0],
             _create_alignment_string(
@@ -480,25 +481,49 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
             best_scoring_alignment[1],
         )
 
-        # continue
-
-        # all_alignments=set()
-        # print (f'genome seq used for find all alignments: {genome_seq}')
-        # for idx in range(len(genome_seq)-40):
-        #     iter_genome_seq=genome_seq[idx:idx+30]
-        #     iter_alignments=find_all_possible_alignments(str(ca.crispr_target.sequence),iter_genome_seq,6,2,2,2)
-        #     # print (iter_alignments)
-        #     all_alignments.update(iter_alignments)
-        # best_scoring_alignment=None
-        # best_alignment_score=999
-        # print (all_alignments)
-        # for crispr_seq,genome_seq in all_alignments:
-        #     iter_score = sa_cas_off_target_score((crispr_seq,'',genome_seq))
-        #     if iter_score < best_alignment_score:
-        #         best_alignment_score=iter_score
-        #         best_scoring_alignment=(crispr_seq,crispr_target._create_alignment_string(crispr_seq,genome_seq),genome_seq)
-        #         # print (best_alignment_score)
-        #         # print (best_scoring_alignment)
+        cut_site_bases_from_three_prime_end = len(  # pylint: disable=invalid-name
+            self.crispr_target.pam
+        ) + (self.crispr_target.cut_site_relative_to_pam * -1)
+        cut_site_index = _find_index_in_alignment_in_crispr_from_three_prime(
+            self.formatted_alignment, cut_site_bases_from_three_prime_end
+        )
+        idx_of_genome_alignment = str(self.genomic_sequence.sequence).find(
+            self.formatted_alignment[2].replace(ALIGNMENT_GAP_CHARACTER, "")
+        )
+        five_prime_genome_seq = (self.formatted_alignment[2][:cut_site_index]).replace(
+            ALIGNMENT_GAP_CHARACTER, ""
+        )
+        trimmed_genomic_seq = self.genomic_sequence.create_three_prime_trim(
+            len(self.genomic_sequence.sequence)
+            - (idx_of_genome_alignment + len(five_prime_genome_seq))
+        )
+        if self.genomic_sequence.is_positive_strand:
+            self.cut_site_coord = trimmed_genomic_seq.end_coord
+        else:
+            self.cut_site_coord = (
+                trimmed_genomic_seq.start_coord - 1
+            )  # adjust so that the cut coordinate is always on the side of the blunt cut towards the coordinate 1 of the chromosome
+        # cut_site_index = _find_index_in_alignment_in_crispr_from_three_prime(
+        #     self.formatted_alignment, cut_site_bases_from_three_prime_end
+        # )
+        # # print(five_prime_genome_seq)
+        # five_prime_genome_seq = (self.formatted_alignment[2][:cut_site_index]).replace(
+        #     ALIGNMENT_GAP_CHARACTER, ""
+        # )
+        # # print(five_prime_genome_seq)
+        # if self.genomic_sequence.is_positive_strand:
+        #     self.cut_site_coord = (
+        #         self.genomic_sequence.start_coord
+        #         + left_count_to_trim
+        #         + len(five_prime_genome_seq)
+        #         - 1
+        #     )  # subtract 1 to get the base 5' of the cut site
+        # else:
+        #     self.cut_site_coord = (
+        #         self.genomic_sequence.end_coord
+        #         - left_count_to_trim
+        #         - len(five_prime_genome_seq)
+        #     )
 
     def perform_alignment(self) -> None:  # pylint:disable=too-many-locals
         """Align CRISPR to Genome.
