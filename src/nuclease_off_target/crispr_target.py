@@ -340,6 +340,53 @@ def _create_alignment_string(crispr_seq: str, genome_seq: str) -> str:
     return alignment_str
 
 
+def _get_best_scoring_alignment(
+    set_of_alignments: Set[Tuple[str, str]]
+) -> Tuple[Tuple[str, str], Union[float, int]]:
+    best_scoring_alignment: Optional[Tuple[str, str]] = None
+    best_score: Union[float, int] = 9999999
+    for crispr_seq, genome_seq in set_of_alignments:
+        iter_score = sa_cas_off_target_score((crispr_seq, "", genome_seq))
+        if iter_score < best_score:
+            best_score = iter_score
+            best_scoring_alignment = (crispr_seq, genome_seq)
+    if best_scoring_alignment is None:
+        raise NotImplementedError(
+            "This should never happen...unless no alignments were provided as an input."
+        )
+    return best_scoring_alignment, best_score
+
+
+def _find_all_alignments_across_sequence(
+    crispr_target_seq: str,
+    genome_seq: str,
+    allowed_mismatches: int,
+    allowed_total_bulges: int,
+    allowed_rna_bulges: int,
+    allowed_dna_bulges: int,
+) -> Set[Tuple[str, str]]:
+
+    max_possible_length_of_genome_alignment = (  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+        len(crispr_target_seq) + allowed_dna_bulges
+    )
+
+    current_strand_alignments = set()
+    for idx in range(len(genome_seq) - max_possible_length_of_genome_alignment):
+        iter_genome_seq = genome_seq[
+            idx : idx + max_possible_length_of_genome_alignment
+        ]
+        iter_alignments = find_all_possible_alignments(
+            str(crispr_target_seq),
+            iter_genome_seq,
+            allowed_mismatches,
+            allowed_total_bulges,
+            allowed_rna_bulges,
+            allowed_dna_bulges,
+        )
+        current_strand_alignments.update(iter_alignments)
+    return current_strand_alignments
+
+
 class CrisprAlignment:  # pylint:disable=too-few-public-methods
     """Create an alignment of CRISPR to the Genome."""
 
@@ -351,6 +398,107 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
         self.alignment_result: Result
         self.formatted_alignment: Tuple[str, str, str]
         self.cut_site_coord: int  # the base 5' (on positive strand...so always closer to start coordinate of chromosome) of the blunt cut
+
+    def find_optimal_alignment(
+        self,
+        allowed_mismatches: int,
+        allowed_total_bulges: int,
+        allowed_rna_bulges: int,
+        allowed_dna_bulges: int,
+    ) -> None:
+        """Align CRISPR to genome.
+
+        Searches through both strands to find the optimal alignment (for
+        SaCas9). Revcomps the genomic sequnce if the highest scoring
+        alignment was on the reverse strand. Calculates cut site
+        coordinate and the formatted alignment.
+        """
+        current_strand_alignments = _find_all_alignments_across_sequence(
+            str(self.crispr_target.sequence),
+            str(self.genomic_sequence.sequence),
+            allowed_mismatches,
+            allowed_total_bulges,
+            allowed_rna_bulges,
+            allowed_dna_bulges,
+        )
+
+        best_scoring_current_strand_alignment: Tuple[  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+            str, str
+        ] = (
+            "",
+            "",
+        )
+        best_current_strand_alignment_score: Union[  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+            float, int
+        ] = 999999
+        if current_strand_alignments:
+            (
+                best_scoring_current_strand_alignment,  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+                best_current_strand_alignment_score,  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+            ) = _get_best_scoring_alignment(current_strand_alignments)
+
+        opposite_strand_genomic_sequence = (  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+            self.genomic_sequence.create_reverse_complement()
+        )
+        opposite_strand_alignments = _find_all_alignments_across_sequence(
+            str(self.crispr_target.sequence),
+            str(opposite_strand_genomic_sequence.sequence),
+            allowed_mismatches,
+            allowed_total_bulges,
+            allowed_rna_bulges,
+            allowed_dna_bulges,
+        )
+
+        best_scoring_opposite_strand_alignment: Tuple[  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+            str, str
+        ] = (
+            "",
+            "",
+        )
+        best_opposite_strand_alignment_score: Union[  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+            float, int
+        ] = 999999
+        if opposite_strand_alignments:
+            (
+                best_scoring_opposite_strand_alignment,  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+                best_opposite_strand_alignment_score,  # pylint: disable=invalid-name # Eli (10/13/20): I know it's too long
+            ) = _get_best_scoring_alignment(opposite_strand_alignments)
+
+        best_scoring_alignment = (
+            best_scoring_current_strand_alignment
+            if best_current_strand_alignment_score
+            < best_opposite_strand_alignment_score
+            else best_scoring_opposite_strand_alignment
+        )
+        if best_scoring_alignment == best_scoring_opposite_strand_alignment:
+            self.genomic_sequence = opposite_strand_genomic_sequence
+        self.formatted_alignment = (
+            best_scoring_alignment[0],
+            _create_alignment_string(
+                best_scoring_alignment[0], best_scoring_alignment[1]
+            ),
+            best_scoring_alignment[1],
+        )
+
+        # continue
+
+        # all_alignments=set()
+        # print (f'genome seq used for find all alignments: {genome_seq}')
+        # for idx in range(len(genome_seq)-40):
+        #     iter_genome_seq=genome_seq[idx:idx+30]
+        #     iter_alignments=find_all_possible_alignments(str(ca.crispr_target.sequence),iter_genome_seq,6,2,2,2)
+        #     # print (iter_alignments)
+        #     all_alignments.update(iter_alignments)
+        # best_scoring_alignment=None
+        # best_alignment_score=999
+        # print (all_alignments)
+        # for crispr_seq,genome_seq in all_alignments:
+        #     iter_score = sa_cas_off_target_score((crispr_seq,'',genome_seq))
+        #     if iter_score < best_alignment_score:
+        #         best_alignment_score=iter_score
+        #         best_scoring_alignment=(crispr_seq,crispr_target._create_alignment_string(crispr_seq,genome_seq),genome_seq)
+        #         # print (best_alignment_score)
+        #         # print (best_scoring_alignment)
 
     def perform_alignment(self) -> None:  # pylint:disable=too-many-locals
         """Align CRISPR to Genome.
