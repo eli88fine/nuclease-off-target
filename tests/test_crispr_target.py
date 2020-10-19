@@ -622,6 +622,22 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
             0.2,
             "Mismatch at positions number 21 and 22 5' of PAM",
         ),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "G"
+            + ALIGNMENT_GAP_CHARACTER
+            + "TAGGACTATTAGCGTGA"
+            + ALIGNMENT_GAP_CHARACTER
+            + "AAGAAT",
+            12.15,
+            "RNA bulge just before PAM and near 5' end of guide triggers the extra 5 point 2 bulges penalty",
+        ),
+        (
+            "G" + ALIGNMENT_GAP_CHARACTER + "TTAGGACTATTAGCGTGATNNGRRT",
+            "GATTAGGACTATTAGCGTGA" + ALIGNMENT_GAP_CHARACTER + "AAGAAT",
+            12.33,
+            "RNA bulge just before PAM and DNA bulge near 5' end of guide triggers the extra 5 point 2 bulges penalty",
+        ),
     ],
 )
 def test_sa_cas_off_target_score(

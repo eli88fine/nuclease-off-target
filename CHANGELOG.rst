@@ -1,10 +1,10 @@
 Changelog for CHANGE_THIS_TO_NAME_OF_PACKAGE
 ============================================
 
-0.2.0 (unreleased)
+0.2.4 (2020-10-19)
 ------------------
 
-- Corrected issue
+- Added 5 additional penalty points to 2nd observed bulge in SaCas alignment scoring
 - Added new feature
 
 0.1.0 (2020-09-02)
