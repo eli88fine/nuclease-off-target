@@ -283,13 +283,27 @@ def fixture_generic_negative_strand_gene_isoform():
 
 @pytest.fixture(
     scope="function",
-    name="generic_negative_strand_gene_isoform_extended_5prime_variant",
+    name="generic_negative_strand_gene_isoform_extended_5prime_shortened_3prime_variant",
 )
-def fixture_generic_negative_strand_gene_isoform_extended_5prime_variant():
+def fixture_generic_negative_strand_gene_isoform_extended_5prime_shortened_3prime_variant():
     gic = GeneIsoformCoordinates(
         [
             ExonCoordinates.from_coordinate_info("hg38", "chr4", 61000, 64000, False),
-            ExonCoordinates.from_coordinate_info("hg38", "chr4", 5000, 60000, False),
+            ExonCoordinates.from_coordinate_info("hg38", "chr4", 5500, 60000, False),
+        ]
+    )
+    yield gic
+
+
+@pytest.fixture(
+    scope="function",
+    name="generic_negative_strand_gene_isoform_extended_3prime_shortened_5prime_variant",
+)
+def fixture_generic_negative_strand_gene_isoform_extended_3prime_shortened_5prime_variant():
+    gic = GeneIsoformCoordinates(
+        [
+            ExonCoordinates.from_coordinate_info("hg38", "chr4", 61000, 61100, False),
+            ExonCoordinates.from_coordinate_info("hg38", "chr4", 2000, 60000, False),
         ]
     )
     yield gic
@@ -345,7 +359,7 @@ def test_GeneIsoformCoordinates__get_end_coord__when_positive_strand(
 def test_GeneCoordinates__standard_info_can_be_accessed_after_loading_one_isoform(
     generic_negative_strand_gene_isoform,
 ):
-    gc = GeneCoordinates("CCR5", generic_negative_strand_gene_isoform,)
+    gc = GeneCoordinates("CCR5", generic_negative_strand_gene_isoform)
     assert gc.is_positive_strand is False
     assert gc.genome == "hg38"
     assert gc.chromosome == "chr4"
@@ -353,20 +367,24 @@ def test_GeneCoordinates__standard_info_can_be_accessed_after_loading_one_isofor
     assert gc.get_end_coord() == 62000
 
 
-# def nottest_GeneCoordinates__get_start_coord__when_isoforms_loaded_during_init(generic_negative_strand_gene_isoform,generic_negative_strand_gene_isoform_extended_5prime_variant):
-#     gc = GeneCoordinates(
-#         "CCR5",
-#         GeneIsoformCoordinates(
-#             [
-#                 ExonCoordinates.from_coordinate_info(
-#                     "hg38", "chr4", 61000, 62000, False
-#                 ),
-#                 ExonCoordinates.from_coordinate_info(
-#                     "hg38", "chr4", 5000, 60000, False
-#                 ),
-#             ]
-#         ),
-#     )
-#     assert gc.is_positive_strand is False
-#     assert gc.genome == "hg38"
-#     assert gc.chromosome == "chr4"
+def test_GeneCoordinates__get_start_coord__when_isoforms_loaded_after_init(
+    generic_negative_strand_gene_isoform,
+    generic_negative_strand_gene_isoform_extended_5prime_shortened_3prime_variant,
+    generic_negative_strand_gene_isoform_extended_3prime_shortened_5prime_variant,
+):
+    gc = GeneCoordinates("HBB", generic_negative_strand_gene_isoform)
+    # confirm pre-condition
+    assert gc.get_start_coord() == 5000
+    assert gc.get_end_coord() == 62000
+
+    gc.add_isoform(
+        generic_negative_strand_gene_isoform_extended_5prime_shortened_3prime_variant
+    )
+    assert gc.get_start_coord() == 5000
+    assert gc.get_end_coord() == 64000
+
+    gc.add_isoform(
+        generic_negative_strand_gene_isoform_extended_3prime_shortened_5prime_variant
+    )
+    assert gc.get_start_coord() == 2000
+    assert gc.get_end_coord() == 64000

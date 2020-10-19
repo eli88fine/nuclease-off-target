@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import datetime
 import time
 from typing import Sequence
+from typing import Set
 
 from Bio.Seq import Seq
 from bs4 import BeautifulSoup
@@ -118,15 +119,27 @@ class GeneCoordinates:
         self.is_positive_strand = an_isoform.is_positive_strand
         self.genome = an_isoform.genome
         self.chromosome = an_isoform.chromosome
-        self._isoforms = set([an_isoform])
+        self._isoforms: Set[GeneIsoformCoordinates] = set()
+        self._end_coord = 0
+        self._start_coord = 10 ** 12
+        self.add_isoform(an_isoform)
+
+    def add_isoform(self, isoform: GeneIsoformCoordinates) -> None:
+        self._isoforms.add(isoform)
+        end_coord = isoform.get_end_coord()
+        start_coord = isoform.get_start_coord()
+        if end_coord > self._end_coord:
+            self._end_coord = end_coord
+        if start_coord < self._start_coord:
+            self._start_coord = start_coord
 
     def get_start_coord(self) -> int:
         """Get the most inclusive span of all isoforms."""
-        return list(self._isoforms)[0].get_start_coord()
+        return self._start_coord
 
     def get_end_coord(self) -> int:
         """Get the most inclusive span of all isoforms."""
-        return list(self._isoforms)[0].get_end_coord()
+        return self._end_coord
 
 
 class GenomicSequence:
