@@ -3,7 +3,11 @@ import datetime
 import time
 
 from freezegun import freeze_time
+from nuclease_off_target import ExonCoordinates
+from nuclease_off_target import GeneCoordinates
+from nuclease_off_target import GeneIsoformCoordinates
 from nuclease_off_target import genomic_sequence
+from nuclease_off_target import GenomicCoordinates
 from nuclease_off_target import GenomicSequence
 from nuclease_off_target import SECONDS_BETWEEN_UCSC_REQUESTS
 import pytest
@@ -20,6 +24,7 @@ def test_GenomicSequence_init_converts_str_sequence_to_BioSeq():
     assert gs.sequence.reverse_complement() == "GGCCAAT"
 
 
+@pytest.mark.slow
 @pytest.mark.timeout(15)
 def test_GenomicSequence_from_coordinates__gets_sequence_from_ucsc_browser():
     gs = GenomicSequence.from_coordinates("hg19", "chrX", 2000000, 2000215, True)
@@ -29,6 +34,7 @@ def test_GenomicSequence_from_coordinates__gets_sequence_from_ucsc_browser():
     )
 
 
+@pytest.mark.slow
 @pytest.mark.timeout(15)
 def test_GenomicSequence_from_coordinates__gets_sequence_from_ucsc_browser_from_negative_strand():
     gs = GenomicSequence.from_coordinates("hg38", "chr2", 500000, 500010, False)
@@ -241,3 +247,126 @@ def test_GenomicSequence_create_five_prime_trim__on_negative_strand():
     assert actual.end_coord == initial_end - 4
     assert actual.is_positive_strand is expected_is_positive_strand
     assert str(actual.sequence) == "AGCGCTAGCAGCATGGTA"
+
+
+def test_GenomicCoordinates__returns_true_when_equal():
+    gc1 = GenomicCoordinates("hg19", "chr2", 9000, 10000)
+    gc2 = GenomicCoordinates("hg19", "chr2", 9000, 10000)
+    assert gc1 == gc2
+
+
+def test_ExonCoordinates__from_coordinate_info():
+    ec = ExonCoordinates.from_coordinate_info("hg38", "chr4", 5000, 60000, False)
+    assert ec.coordinates == GenomicCoordinates("hg38", "chr4", 5000, 60000)
+    assert ec.is_positive_strand is False
+
+
+def test_ExonCoordinates__returns_true_when_equal():
+    gc1 = GenomicCoordinates("hg19", "chr2", 9000, 10000)
+    gc2 = GenomicCoordinates("hg19", "chr2", 9000, 10000)
+
+    ec1 = ExonCoordinates(gc1, True)
+    ec2 = ExonCoordinates(gc2, True)
+    assert ec1 == ec2
+
+
+@pytest.fixture(scope="function", name="generic_negative_strand_gene_isoform")
+def fixture_generic_negative_strand_gene_isoform():
+    gic = GeneIsoformCoordinates(
+        [
+            ExonCoordinates.from_coordinate_info("hg38", "chr4", 61000, 62000, False),
+            ExonCoordinates.from_coordinate_info("hg38", "chr4", 5000, 60000, False),
+        ]
+    )
+    yield gic
+
+
+@pytest.fixture(
+    scope="function",
+    name="generic_negative_strand_gene_isoform_extended_5prime_variant",
+)
+def fixture_generic_negative_strand_gene_isoform_extended_5prime_variant():
+    gic = GeneIsoformCoordinates(
+        [
+            ExonCoordinates.from_coordinate_info("hg38", "chr4", 61000, 64000, False),
+            ExonCoordinates.from_coordinate_info("hg38", "chr4", 5000, 60000, False),
+        ]
+    )
+    yield gic
+
+
+@pytest.fixture(scope="function", name="generic_positive_strand_gene_isoform")
+def fixture_generic_positive_strand_gene_isoform():
+    gic = GeneIsoformCoordinates(
+        [
+            ExonCoordinates.from_coordinate_info("mm10", "chr2", 100000, 102250, True),
+            ExonCoordinates.from_coordinate_info("mm10", "chr2", 200000, 203355, True),
+        ]
+    )
+    yield gic
+
+
+def test_GeneIsoformCoordinates__get_all_exon_coordinates(
+    generic_negative_strand_gene_isoform,
+):
+    actual_coords = generic_negative_strand_gene_isoform.get_all_exon_coordinates()
+    assert len(actual_coords) == 2
+    assert actual_coords[1].coordinates.end_coord == 60000
+
+
+def test_GeneIsoformCoordinates__get_start_coord__when_negative_strand(
+    generic_negative_strand_gene_isoform,
+):
+    actual_start = generic_negative_strand_gene_isoform.get_start_coord()
+    assert actual_start == 5000
+
+
+def test_GeneIsoformCoordinates__get_end_coord__when_negative_strand(
+    generic_negative_strand_gene_isoform,
+):
+    actual_end = generic_negative_strand_gene_isoform.get_end_coord()
+    assert actual_end == 62000
+
+
+def test_GeneIsoformCoordinates__get_start_coord__when_positive_strand(
+    generic_positive_strand_gene_isoform,
+):
+    actual_start = generic_positive_strand_gene_isoform.get_start_coord()
+    assert actual_start == 100000
+
+
+def test_GeneIsoformCoordinates__get_end_coord__when_positive_strand(
+    generic_positive_strand_gene_isoform,
+):
+    actual_end = generic_positive_strand_gene_isoform.get_end_coord()
+    assert actual_end == 203355
+
+
+def test_GeneCoordinates__standard_info_can_be_accessed_after_loading_one_isoform(
+    generic_negative_strand_gene_isoform,
+):
+    gc = GeneCoordinates("CCR5", generic_negative_strand_gene_isoform,)
+    assert gc.is_positive_strand is False
+    assert gc.genome == "hg38"
+    assert gc.chromosome == "chr4"
+    assert gc.get_start_coord() == 5000
+    assert gc.get_end_coord() == 62000
+
+
+# def nottest_GeneCoordinates__get_start_coord__when_isoforms_loaded_during_init(generic_negative_strand_gene_isoform,generic_negative_strand_gene_isoform_extended_5prime_variant):
+#     gc = GeneCoordinates(
+#         "CCR5",
+#         GeneIsoformCoordinates(
+#             [
+#                 ExonCoordinates.from_coordinate_info(
+#                     "hg38", "chr4", 61000, 62000, False
+#                 ),
+#                 ExonCoordinates.from_coordinate_info(
+#                     "hg38", "chr4", 5000, 60000, False
+#                 ),
+#             ]
+#         ),
+#     )
+#     assert gc.is_positive_strand is False
+#     assert gc.genome == "hg38"
+#     assert gc.chromosome == "chr4"

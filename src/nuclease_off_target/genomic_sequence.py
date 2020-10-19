@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """Genomic sequences."""
+from dataclasses import dataclass
 import datetime
 import time
+from typing import Sequence
 
 from Bio.Seq import Seq
 from bs4 import BeautifulSoup
@@ -36,6 +38,95 @@ def request_sequence_from_ucsc(url: str) -> str:
     sequence_element_lines = str(sequence_element).split("\n")
     lines_of_sequence = sequence_element_lines[2:-1]
     return "".join(lines_of_sequence)
+
+
+@dataclass
+class GenomicCoordinates:
+    """Coordinates representing a sequence stretch in a genome.
+
+    Start coordinate should always be a lower value than the end
+    coordinate.
+    """
+
+    genome: str
+    chromosome: str
+    start_coord: int
+    end_coord: int
+
+
+@dataclass
+class ExonCoordinates:
+    """Coordinates representing an exon."""
+
+    coordinates: GenomicCoordinates
+    is_positive_strand: bool
+
+    @classmethod
+    def from_coordinate_info(
+        cls,
+        genome: str,
+        chromosome: str,
+        start_coord: int,
+        end_coord: int,
+        is_positive_strand: bool,
+    ) -> "ExonCoordinates":
+        """Instantiate from provided details of coordinates."""
+        coordinates = GenomicCoordinates(genome, chromosome, start_coord, end_coord)
+        return cls(coordinates, is_positive_strand)
+
+
+class GeneIsoformCoordinates:
+    """Coordinates for a specific isoform of a gene."""
+
+    def __init__(self, all_exon_coordinates: Sequence[ExonCoordinates]) -> None:
+        self._exon_coordinates = all_exon_coordinates
+        self.is_positive_strand = all_exon_coordinates[0].is_positive_strand
+        self.genome = all_exon_coordinates[0].coordinates.genome
+        self.chromosome = all_exon_coordinates[0].coordinates.chromosome
+
+        self._start_coord: int
+        self._end_coord: int
+        self._calculate_coordinates_from_exons()
+
+    def _calculate_coordinates_from_exons(self) -> None:
+        """Help init calculate internal attributes."""
+        self._start_coord = 10 ** 12  # way larger than any chromosome coordinate
+        self._end_coord = 0
+        for iter_exon_coords in self._exon_coordinates:
+            iter_exon_start = iter_exon_coords.coordinates.start_coord
+            iter_exon_end = iter_exon_coords.coordinates.end_coord
+            if iter_exon_start < self._start_coord:
+                self._start_coord = iter_exon_start
+            if iter_exon_end > self._end_coord:
+                self._end_coord = iter_exon_end
+
+    def get_all_exon_coordinates(self) -> Sequence[ExonCoordinates]:
+        return self._exon_coordinates
+
+    def get_start_coord(self) -> int:
+        return self._start_coord
+
+    def get_end_coord(self) -> int:
+        return self._end_coord
+
+
+class GeneCoordinates:
+    """Coordinates representing a gene with potentially several isoforms."""
+
+    def __init__(self, name: str, an_isoform: GeneIsoformCoordinates) -> None:
+        self.name = name
+        self.is_positive_strand = an_isoform.is_positive_strand
+        self.genome = an_isoform.genome
+        self.chromosome = an_isoform.chromosome
+        self._isoforms = set([an_isoform])
+
+    def get_start_coord(self) -> int:
+        """Get the most inclusive span of all isoforms."""
+        return list(self._isoforms)[0].get_start_coord()
+
+    def get_end_coord(self) -> int:
+        """Get the most inclusive span of all isoforms."""
+        return list(self._isoforms)[0].get_end_coord()
 
 
 class GenomicSequence:

@@ -18,10 +18,18 @@ from .crispr_target import extract_cigar_str_from_result
 from .crispr_target import find_all_possible_alignments
 from .crispr_target import sa_cas_off_target_score
 from .crispr_target import SaCasTarget
+from .genomic_sequence import ExonCoordinates
+from .genomic_sequence import GeneCoordinates
+from .genomic_sequence import GeneIsoformCoordinates
+from .genomic_sequence import GenomicCoordinates
 from .genomic_sequence import GenomicSequence
 
 __all__ = [
     "GenomicSequence",
+    "GeneIsoformCoordinates",
+    "ExonCoordinates",
+    "GenomicCoordinates",
+    "GeneCoordinates",
     "genomic_sequence",
     "crispr_target",
     "SECONDS_BETWEEN_UCSC_REQUESTS",
