@@ -120,6 +120,7 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
         raise NotImplementedError(
             "The mismatch penalties should always be a dictionary."
         )
+    total_bulge_count = 0
     for index, crispr_char in enumerate(rev_crispr):
         genome_char = rev_genome[index]
         is_dna_bulge = crispr_char == ALIGNMENT_GAP_CHARACTER
@@ -145,11 +146,17 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
                 score += 0.3
             else:
                 score += 0.51
+            total_bulge_count += 1
+            if total_bulge_count == 2:
+                score += 5  # Eli (10/19/20): request was made to add an extra 5 point penalty for the 2nd observed bulge
         if is_dna_bulge:
             if crispr_base_position in SA_CAS_PAM_POSITIONS_FOR_BULGES:
                 score += 0.3
             else:
                 score += 0.7
+            total_bulge_count += 1
+            if total_bulge_count == 2:
+                score += 5  # Eli (10/19/20): request was made to add an extra 5 point penalty for the 2nd observed bulge
         if not is_dna_bulge:
             crispr_base_position += 1
     return score
