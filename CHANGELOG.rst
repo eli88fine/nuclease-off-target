@@ -1,7 +1,7 @@
 Changelog for nuclease-off-target
 =================================
 
-0.2.5 (2020-10-19)
+0.2.6 (2020-10-20)
 ------------------
 
 - Added only_include_chromosomes kwarg to parse_ucsc_refseq_table_into_gene_coordinates
