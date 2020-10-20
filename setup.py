@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name="nuclease-off-target",
-    version="0.2.4",
+    version="0.2.5",
     description="Analyzing Nuclease Off-Target Sites and Activity",
     url="https://github.com/eli88fine/nuclease-off-target",
     author="Eli Fine",
@@ -20,6 +20,7 @@ setup(
         "beautifulsoup4>=4.9.3",
         "parasail>=1.2",
         "stdlib_utils>=0.3.1",
+        "immutable_data_validation>=0.2.1",
     ],
     zip_safe=False,
     include_package_data=True,
