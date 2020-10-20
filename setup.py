@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name="nuclease-off-target",
-    version="0.2.5",
+    version="0.2.6",
     description="Analyzing Nuclease Off-Target Sites and Activity",
     url="https://github.com/eli88fine/nuclease-off-target",
     author="Eli Fine",

@@ -114,6 +114,13 @@ jobs:
         if: github.event.inputs.randomlyseed != ''
         run: pytest -xsvv --cov-report=xml --randomly-seed=${{ github.event.inputs.randomlyseed }} --full-ci --include-slow-tests
 
+      - name: Archive Python code coverage
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: python-code-coverage--${{ matrix.os }}--${{ matrix.python-version }}
+          path: "coverage-report-pytest/**/*"
+
       - name: Confirm Sphinx Docs build correctly
         # only check Sphinx docs build on the fastest job
         if: matrix.IS_FASTEST_JOB == true
@@ -128,7 +135,6 @@ jobs:
         run: |
           python setup.py sdist
           python setup.py bdist_wheel
-
 
   create_tag:
     needs: test

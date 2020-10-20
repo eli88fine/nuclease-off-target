@@ -554,6 +554,16 @@ def test_parse_ucsc_refseq_table_into_gene_coordinates__puts_multiple_isoforms_i
     assert len(znf215.get_isoforms()) == 10
 
 
+def test_parse_ucsc_refseq_table_into_gene_coordinates__excludes_chromosomes_not_in_kwarg():
+    filepath = os.path.join(PATH_OF_CURRENT_FILE, "partial_ucsc_hg19_refseq.tsv")
+    actual_dict = parse_ucsc_refseq_table_into_gene_coordinates(
+        "hg19", filepath, only_include_chromosomes=["chr1", "chr9"]
+    )
+    actual_keys = list(actual_dict.keys())
+
+    assert len(actual_keys) == 7
+
+
 def test_create_dict_by_chromosome_from_genes():
     filepath = os.path.join(PATH_OF_CURRENT_FILE, "partial_ucsc_hg19_refseq.tsv")
     genes_dict = parse_ucsc_refseq_table_into_gene_coordinates("hg19", filepath)
