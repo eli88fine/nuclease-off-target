@@ -11,6 +11,8 @@ from nuclease_off_target import GeneIsoformCoordinates
 from nuclease_off_target import genomic_sequence
 from nuclease_off_target import GenomicCoordinates
 from nuclease_off_target import GenomicSequence
+from nuclease_off_target import IsoformInDifferentChromosomeError
+from nuclease_off_target import IsoformInDifferentStrandError
 from nuclease_off_target import parse_ucsc_refseq_table_into_gene_coordinates
 from nuclease_off_target import SECONDS_BETWEEN_UCSC_REQUESTS
 import pytest
@@ -394,6 +396,33 @@ def test_GeneCoordinates__get_start_coord__when_isoforms_loaded_after_init(
     )
     assert gc.get_start_coord() == 2000
     assert gc.get_end_coord() == 64000
+
+
+def test_GeneCoordinates__add_isoform__raises_error_if_isoform_in_different_chromosome(
+    generic_negative_strand_gene_isoform,
+):
+    gc = GeneCoordinates("CCR2", generic_negative_strand_gene_isoform)
+    iso2 = GeneIsoformCoordinates(
+        [
+            ExonCoordinates.from_coordinate_info("hg38", "chr5", 61000, 62000, False),
+            ExonCoordinates.from_coordinate_info("hg38", "chr5", 5000, 60000, False),
+        ]
+    )
+
+    with pytest.raises(IsoformInDifferentChromosomeError, match=r"CCR2.*chr4.*chr5"):
+        gc.add_isoform(iso2)
+
+
+def test_GeneCoordinates__add_isoform__raises_error_if_isoform_in_different_strand(
+    generic_negative_strand_gene_isoform,
+):
+    gc = GeneCoordinates("HBG", generic_negative_strand_gene_isoform)
+    iso2 = GeneIsoformCoordinates(
+        [ExonCoordinates.from_coordinate_info("hg38", "chr4", 45000, 50000, True),]
+    )
+
+    with pytest.raises(IsoformInDifferentStrandError, match=r"HBG.*negative.*positive"):
+        gc.add_isoform(iso2)
 
 
 def test_GeneIsoformCoordinates__from_ucsc_refseq_table_row__single_exon_positive_strand():

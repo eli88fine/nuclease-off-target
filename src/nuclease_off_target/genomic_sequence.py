@@ -19,6 +19,8 @@ from immutable_data_validation import validate_str
 import requests
 
 from .constants import SECONDS_BETWEEN_UCSC_REQUESTS
+from .exceptions import IsoformInDifferentChromosomeError
+from .exceptions import IsoformInDifferentStrandError
 
 time_of_last_request_to_ucsc_browser = datetime.datetime(
     year=2019, month=1, day=1
@@ -169,6 +171,18 @@ class GeneCoordinates:
         return self._isoforms
 
     def add_isoform(self, isoform: GeneIsoformCoordinates) -> None:
+        """Add an isoform.
+
+        Perform various validations and calculations.
+        """
+        if isoform.chromosome != self.chromosome:
+            raise IsoformInDifferentChromosomeError(
+                f"The current isoforms in this gene ({self.name}) are in chromosome {self.chromosome} but the new isoform attempting to be added is in chromosome {isoform.chromosome}."
+            )
+        if isoform.is_positive_strand != self.is_positive_strand:
+            raise IsoformInDifferentStrandError(
+                f"The current isoforms in this gene ({self.name}) are on the {'positive' if self.is_positive_strand else 'negative'} strand but the new isoform attempting to be added is on the {'positive' if isoform.is_positive_strand else 'negative'} strand."
+            )
         self._isoforms.add(isoform)
         end_coord = isoform.get_end_coord()
         start_coord = isoform.get_start_coord()
