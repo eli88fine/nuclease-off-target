@@ -388,3 +388,90 @@ def test_GeneCoordinates__get_start_coord__when_isoforms_loaded_after_init(
     )
     assert gc.get_start_coord() == 2000
     assert gc.get_end_coord() == 64000
+
+
+def test_GeneIsoformCoordinates__from_ucsc_refseq_table_row__single_exon_positive_strand():
+    row = [
+        585,
+        "NR_036268.1",
+        "chr19",
+        "+",
+        71972,
+        "72110",
+        "72110",
+        "72110",
+        "1",
+        "71972,",
+        "72110,",
+        0,
+        "MIR1302-11",
+        "none",
+        "none",
+        "-1,",
+    ]
+    gi = GeneIsoformCoordinates.from_ucsc_refseq_table_row("hg19", row)
+    assert gi.genome == "hg19"
+    assert gi.is_positive_strand is True
+    assert gi.get_start_coord() == 71972
+    assert gi.get_end_coord() == 72110
+    assert gi.chromosome == "chr19"
+    assert len(gi.get_all_exon_coordinates()) == 1
+
+
+def test_GeneIsoformCoordinates__from_ucsc_refseq_table_row__many_exons_positive_strand():
+    row = [
+        1,
+        "NM_001301825.1",
+        "chr1",
+        "+",
+        33547778,
+        33586132,
+        33547850,
+        33585783,
+        9,
+        "33547778,33549554,33557650,33558882,33560148,33562307,33563607,33583502,33585644,",
+        "33547955,33549728,33557823,33559017,33560314,33562470,33563780,33583717,33586132,",
+        "0",
+        "AZIN2",
+        "cmpl",
+        "cmpl",
+        "0,0,0,2,2,0,1,0,2,",
+    ]
+    gi = GeneIsoformCoordinates.from_ucsc_refseq_table_row("hg38", row)
+    assert gi.genome == "hg38"
+    assert gi.is_positive_strand is True
+    assert gi.get_start_coord() == 33547778
+    assert gi.get_end_coord() == 33586132
+    assert gi.chromosome == "chr1"
+    all_exons = gi.get_all_exon_coordinates()
+    assert len(all_exons) == 9
+    assert all_exons[1].coordinates.start_coord == 33549554
+    assert all_exons[3].coordinates.end_coord == 33559017
+
+
+def test_GeneIsoformCoordinates__from_ucsc_refseq_table_row__single_exon_negative_strand():
+    row = [
+        960,
+        "NR_031634.1",
+        "chr20",
+        "-",
+        "49231172",
+        49231322,
+        49231322,
+        "49231322",
+        1,
+        "49231172,",
+        "49231322,",
+        "0",
+        "MIR1302-5",
+        "none",
+        "none",
+        "-1,",
+    ]
+    gi = GeneIsoformCoordinates.from_ucsc_refseq_table_row("mm10", row)
+    assert gi.genome == "mm10"
+    assert gi.is_positive_strand is False
+    assert gi.get_start_coord() == 49231172
+    assert gi.get_end_coord() == 49231322
+    assert gi.chromosome == "chr20"
+    assert len(gi.get_all_exon_coordinates()) == 1

@@ -20,6 +20,7 @@ setup(
         "beautifulsoup4>=4.9.3",
         "parasail>=1.2",
         "stdlib_utils>=0.3.1",
+        "immutable_data_validation>=0.2.1",
     ],
     zip_safe=False,
     include_package_data=True,

@@ -3,11 +3,15 @@
 from dataclasses import dataclass
 import datetime
 import time
+from typing import List
 from typing import Sequence
 from typing import Set
+from typing import Union
 
 from Bio.Seq import Seq
 from bs4 import BeautifulSoup
+from immutable_data_validation import validate_int
+from immutable_data_validation import validate_str
 import requests
 
 from .constants import SECONDS_BETWEEN_UCSC_REQUESTS
@@ -88,6 +92,31 @@ class GeneIsoformCoordinates:
         self._start_coord: int
         self._end_coord: int
         self._calculate_coordinates_from_exons()
+
+    @classmethod
+    def from_ucsc_refseq_table_row(
+        cls, genome: str, table_row: Sequence[Union[str, int]]
+    ) -> "GeneIsoformCoordinates":
+        """Create an instance from a table row.
+
+        Intended to be used on data gathered from the USCS Genome Table Browser using the "RefSeq All (ncbiRefSeq)" table under Track "NCBI RefSeq"
+        Example: https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=923625121_aiwBounEVv5j3SwEeuFGRaRYYCOu&clade=mammal&org=&db=hg19&hgta_group=genes&hgta_track=refSeqComposite&hgta_table=ncbiRefSeq&hgta_regionType=genome&position=&hgta_outputType=primaryTable&hgta_outFileName=
+        """
+        all_exons: List[ExonCoordinates] = list()
+        num_exons = validate_int(table_row[8])
+        exon_starts = validate_str(table_row[9]).split(",")
+        exon_ends = validate_str(table_row[10]).split(",")
+        is_positive_strand = table_row[3] == "+"
+        chromosome = validate_str(table_row[2])
+        for exon_idx in range(num_exons):
+            start_coord = validate_int(exon_starts[exon_idx])
+            end_coord = validate_int(exon_ends[exon_idx])
+            all_exons.append(
+                ExonCoordinates.from_coordinate_info(
+                    genome, chromosome, start_coord, end_coord, is_positive_strand
+                )
+            )
+        return cls(all_exons)
 
     def _calculate_coordinates_from_exons(self) -> None:
         """Help init calculate internal attributes."""
