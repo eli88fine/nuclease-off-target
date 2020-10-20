@@ -8,6 +8,7 @@ import time
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Union
@@ -201,12 +202,17 @@ class GeneCoordinates:
 
 
 def parse_ucsc_refseq_table_into_gene_coordinates(  # pylint:disable=invalid-name # Eli (10/19/20): I know this is a long name
-    genome: str, filepath: str,
+    genome: str, filepath: str, only_include_chromosomes: Optional[Sequence[str]] = None
 ) -> Dict[str, GeneCoordinates]:
     """Parse the table from the UCSC Genome browser.
 
     Intended to be used on data gathered from the USCS Genome Table Browser using the "RefSeq All (ncbiRefSeq)" table under Track "NCBI RefSeq"
     Example: https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=923625121_aiwBounEVv5j3SwEeuFGRaRYYCOu&clade=mammal&org=&db=hg19&hgta_group=genes&hgta_track=refSeqComposite&hgta_table=ncbiRefSeq&hgta_regionType=genome&position=&hgta_outputType=primaryTable&hgta_outFileName=
+
+    Args:
+        genome: the genome build, e.g. hg38
+        filepath: the full path of the file to open to parse
+        only_include_chromosomes: a list of chromosomes to include. A typical use case for this is only including the "regular" numbered chromosomes, to exclude things like chr6_apd_hap1. This may make cross-referencing another database (like TSGene) easier
 
     Returns: a dictionary with the name of the gene as the key and the GeneCoordinates as the value
     """
@@ -219,6 +225,9 @@ def parse_ucsc_refseq_table_into_gene_coordinates(  # pylint:disable=invalid-nam
             iter_isoform = GeneIsoformCoordinates.from_ucsc_refseq_table_row(
                 genome, row
             )
+            if only_include_chromosomes is not None:
+                if iter_isoform.chromosome not in only_include_chromosomes:
+                    continue
             gene_name = validate_str(row[12])
             iter_gene = GeneCoordinates(gene_name, iter_isoform)
             if gene_name not in dict_of_genes:
