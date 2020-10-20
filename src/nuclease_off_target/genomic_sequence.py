@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """Genomic sequences."""
+from collections import defaultdict
+import csv
 from dataclasses import dataclass
 import datetime
 import time
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Sequence
 from typing import Set
@@ -153,6 +157,17 @@ class GeneCoordinates:
         self._start_coord = 10 ** 12
         self.add_isoform(an_isoform)
 
+    def __hash__(self) -> int:
+        return hash(self.name)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+        return self.name == other.name
+
+    def get_isoforms(self) -> Set[GeneIsoformCoordinates]:
+        return self._isoforms
+
     def add_isoform(self, isoform: GeneIsoformCoordinates) -> None:
         self._isoforms.add(isoform)
         end_coord = isoform.get_end_coord()
@@ -169,6 +184,44 @@ class GeneCoordinates:
     def get_end_coord(self) -> int:
         """Get the most inclusive span of all isoforms."""
         return self._end_coord
+
+
+def parse_ucsc_refseq_table_into_gene_coordinates(  # pylint:disable=invalid-name # Eli (10/19/20): I know this is a long name
+    genome: str, filepath: str,
+) -> Dict[str, GeneCoordinates]:
+    """Parse the table from the UCSC Genome browser.
+
+    Intended to be used on data gathered from the USCS Genome Table Browser using the "RefSeq All (ncbiRefSeq)" table under Track "NCBI RefSeq"
+    Example: https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=923625121_aiwBounEVv5j3SwEeuFGRaRYYCOu&clade=mammal&org=&db=hg19&hgta_group=genes&hgta_track=refSeqComposite&hgta_table=ncbiRefSeq&hgta_regionType=genome&position=&hgta_outputType=primaryTable&hgta_outFileName=
+
+    Returns: a dictionary with the name of the gene as the key and the GeneCoordinates as the value
+    """
+    dict_of_genes: Dict[str, GeneCoordinates] = dict()
+    with open(filepath, newline="") as csvfile:
+        the_reader = csv.reader(csvfile, delimiter="\t")
+        for row_idx, row in enumerate(the_reader):
+            if row_idx == 0:
+                continue  # skip header row
+            iter_isoform = GeneIsoformCoordinates.from_ucsc_refseq_table_row(
+                genome, row
+            )
+            gene_name = validate_str(row[12])
+            iter_gene = GeneCoordinates(gene_name, iter_isoform)
+            if gene_name not in dict_of_genes:
+                dict_of_genes[gene_name] = iter_gene
+            else:
+                dict_of_genes[gene_name].add_isoform(iter_isoform)
+    return dict_of_genes
+
+
+def create_dict_by_chromosome_from_genes(
+    genes: Sequence[GeneCoordinates],
+) -> Dict[str, Set[GeneCoordinates]]:
+    dict_by_chr: Dict[str, Set[GeneCoordinates]] = defaultdict(set)
+    for iter_gene in genes:
+        iter_chromosome = iter_gene.chromosome
+        dict_by_chr[iter_chromosome].add(iter_gene)
+    return dict_by_chr
 
 
 class GenomicSequence:

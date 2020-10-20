@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 import datetime
+import os
 import time
 
 from freezegun import freeze_time
+from nuclease_off_target import create_dict_by_chromosome_from_genes
 from nuclease_off_target import ExonCoordinates
 from nuclease_off_target import GeneCoordinates
 from nuclease_off_target import GeneIsoformCoordinates
 from nuclease_off_target import genomic_sequence
 from nuclease_off_target import GenomicCoordinates
 from nuclease_off_target import GenomicSequence
+from nuclease_off_target import parse_ucsc_refseq_table_into_gene_coordinates
 from nuclease_off_target import SECONDS_BETWEEN_UCSC_REQUESTS
 import pytest
+from stdlib_utils import get_current_file_abs_directory
+
+PATH_OF_CURRENT_FILE = get_current_file_abs_directory()
 
 
 def test_GenomicSequence_init_assigns_values_and_has_str_correct():
@@ -449,6 +455,37 @@ def test_GeneIsoformCoordinates__from_ucsc_refseq_table_row__many_exons_positive
     assert all_exons[3].coordinates.end_coord == 33559017
 
 
+def test_GeneCoordinates__instance_with_same_name_is_found_in_set(
+    generic_negative_strand_gene_isoform,
+):
+    gc1 = GeneCoordinates("HBD", generic_negative_strand_gene_isoform)
+    gc2 = GeneCoordinates("HBD", generic_negative_strand_gene_isoform)
+    # check pre-condition
+    assert gc1 is not gc2
+    actual_set = set([gc1])
+    assert gc2 in actual_set
+
+
+def test_GeneCoordinates__instance_with_same_name_is_equal(
+    generic_negative_strand_gene_isoform,
+):
+    gc1 = GeneCoordinates("HBD", generic_negative_strand_gene_isoform)
+    gc2 = GeneCoordinates("HBD", generic_negative_strand_gene_isoform)
+    # check pre-condition
+    assert gc1 is not gc2
+
+    assert gc1 != 5
+    assert gc1 == gc2
+
+
+def test_GeneCoordinates__instance_with_different_name_is_not_equal(
+    generic_negative_strand_gene_isoform,
+):
+    gc1 = GeneCoordinates("HBD", generic_negative_strand_gene_isoform)
+    gc2 = GeneCoordinates("HBB", generic_negative_strand_gene_isoform)
+    assert gc1 != gc2
+
+
 def test_GeneIsoformCoordinates__from_ucsc_refseq_table_row__single_exon_negative_strand():
     row = [
         960,
@@ -475,3 +512,26 @@ def test_GeneIsoformCoordinates__from_ucsc_refseq_table_row__single_exon_negativ
     assert gi.get_end_coord() == 49231322
     assert gi.chromosome == "chr20"
     assert len(gi.get_all_exon_coordinates()) == 1
+
+
+def test_parse_ucsc_refseq_table_into_gene_coordinates__puts_multiple_isoforms_into_same_gene():
+    filepath = os.path.join(PATH_OF_CURRENT_FILE, "partial_ucsc_hg19_refseq.tsv")
+    actual_dict = parse_ucsc_refseq_table_into_gene_coordinates("hg19", filepath)
+    actual_keys = list(actual_dict.keys())
+
+    assert actual_dict[actual_keys[0]].genome == "hg19"
+    assert len(actual_keys) == 11
+    znf215 = actual_dict["ZNF215"]
+    assert len(znf215.get_isoforms()) == 10
+
+
+def test_create_dict_by_chromosome_from_genes():
+    filepath = os.path.join(PATH_OF_CURRENT_FILE, "partial_ucsc_hg19_refseq.tsv")
+    genes_dict = parse_ucsc_refseq_table_into_gene_coordinates("hg19", filepath)
+
+    genes = genes_dict.values()
+    dict_by_chr = create_dict_by_chromosome_from_genes(genes)
+    actual_keys = set(dict_by_chr.keys())
+    assert actual_keys == set(["chr11", "chr1", "chr9"])
+    assert len(dict_by_chr["chr1"]) == 1
+    assert len(dict_by_chr["chr11"]) == 4
