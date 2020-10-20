@@ -18,10 +18,24 @@ from .crispr_target import extract_cigar_str_from_result
 from .crispr_target import find_all_possible_alignments
 from .crispr_target import sa_cas_off_target_score
 from .crispr_target import SaCasTarget
+from .exceptions import IsoformInDifferentChromosomeError
+from .exceptions import IsoformInDifferentStrandError
+from .genomic_sequence import create_dict_by_chromosome_from_genes
+from .genomic_sequence import ExonCoordinates
+from .genomic_sequence import GeneCoordinates
+from .genomic_sequence import GeneIsoformCoordinates
+from .genomic_sequence import GenomicCoordinates
 from .genomic_sequence import GenomicSequence
+from .genomic_sequence import parse_ucsc_refseq_table_into_gene_coordinates
 
 __all__ = [
     "GenomicSequence",
+    "GeneIsoformCoordinates",
+    "ExonCoordinates",
+    "GenomicCoordinates",
+    "GeneCoordinates",
+    "parse_ucsc_refseq_table_into_gene_coordinates",
+    "create_dict_by_chromosome_from_genes",
     "genomic_sequence",
     "crispr_target",
     "SECONDS_BETWEEN_UCSC_REQUESTS",
@@ -40,4 +54,6 @@ __all__ = [
     "ALIGNMENT_GAP_CHARACTER",
     "SEPARATION_BETWEEN_GUIDE_AND_PAM",
     "CAS_VARIETIES",
+    "IsoformInDifferentChromosomeError",
+    "IsoformInDifferentStrandError",
 ]
