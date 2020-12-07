@@ -2,6 +2,6 @@
 requests==2.24.0
 biopython==1.78
 beautifulsoup4==4.9.3
-parasail==1.2
+parasail==1.2.2
 stdlib_utils==0.3.6
 immutable_data_validation==0.2.1
