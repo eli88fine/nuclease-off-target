@@ -10,7 +10,7 @@ from nuclease_off_target import VERTICAL_ALIGNMENT_RNA_BULGE_CHARACTER
 
 
 def test_ucsc():
-    assert SECONDS_BETWEEN_UCSC_REQUESTS == 10
+    assert SECONDS_BETWEEN_UCSC_REQUESTS == 3
 
 
 def test_alignment_display():

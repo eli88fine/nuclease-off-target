@@ -20,19 +20,17 @@ jobs:
       matrix:
         os:
           - "ubuntu-18.04"
+          - "ubuntu-20.04"
           - "windows-2019"
         python-version:
             - 3.7
             - 3.8
+            - 3.9
         include:
           # only enable coverage on the fastest job
-          - os: "ubuntu-18.04"
-            python-version: "3.7"
+          - os: "ubuntu-20.04"
+            python-version: "3.8"
             IS_FASTEST_JOB: true
-          - os: "ubuntu-18.04"
-            IS_LINUX: true
-          - os: "windows-2019"
-            IS_WINDOWS: true
     name: Test code in Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -52,7 +50,7 @@ jobs:
 
 
       - name: Extract branch name # Adapted from: https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
-        if: matrix.IS_LINUX == true
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           git branch -av
@@ -62,30 +60,30 @@ jobs:
         id: extract_branch
 
       - name: Display extracted branch information
-        if: matrix.IS_LINUX == true
+        if: runner.os == 'Linux'
         run: |
           echo "SHA of current branch: ${{ steps.extract_branch.outputs.sha-of-current-branch }}"
           echo "SHA of main branch: ${{ steps.extract_branch.outputs.sha-of-main-branch }}"
           echo "SHA of development branch: ${{ steps.extract_branch.outputs.sha-of-development-branch }}"
 
       - name: Is this running on development branch?
-        if: matrix.IS_LINUX == true
+        if: runner.os == 'Linux'
         run: if [ "${{ steps.extract_branch.outputs.sha-of-current-branch}}" = "${{ steps.extract_branch.outputs.sha-of-development-branch}}" ] ; then echo "Running on development branch."; else echo "Not running on development branch."; fi
 
       - name: Is this running on main branch?
-        if: matrix.IS_LINUX == true
+        if: runner.os == 'Linux'
         run: if [ "${{ steps.extract_branch.outputs.sha-of-current-branch}}" = "${{ steps.extract_branch.outputs.sha-of-main-branch}}" ] ; then echo "Running on main branch."; else echo "Not running on main branch."; fi
 
       - name: Fail if attempting to publish from a branch other than main
-        if: matrix.IS_LINUX == true && github.event.inputs.publish_to_pypi == '1'
+        if: runner.os == 'Linux' && github.event.inputs.publish_to_pypi == '1'
         run: if [ "${{ steps.extract_branch.outputs.sha-of-current-branch}}" = "${{ steps.extract_branch.outputs.sha-of-main-branch}}" ] ; then echo "Running on main branch, can proceed to publish."; else exit 1; fi
 
       - name: Activate virtual environment (Linux/MacOS)
-        if: matrix.IS_LINUX == true
+        if: runner.os == 'Linux'
         run: . venv/bin/activate
 
       - name: Activate virtual environment (Windows)
-        if: matrix.IS_WINDOWS == true
+        if: runner.os == 'Windows'
         run: venv\Scripts\Activate.ps1
 
       - name: Display Pip Version and confirm environment empty
@@ -142,7 +140,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - "ubuntu-18.04"
+          - "ubuntu-20.04"
     name: Creating tag on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -173,16 +171,9 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - "ubuntu-18.04"
-          # - "windows-2019"
+          - "ubuntu-20.04"
         python-version:
-            - 3.7
-            # - 3.8
-        include:
-          - os: "ubuntu-18.04"
-            IS_LINUX: true
-          # - os: "windows-2019"
-          #   IS_WINDOWS: true
+            - 3.8
     name: Publish for Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -201,12 +192,9 @@ jobs:
           python -m venv venv
 
       - name: Activate virtual environment (Linux/MacOS)
-        if: matrix.IS_LINUX == true
+        if: runner.os == 'Linux'
         run: . venv/bin/activate
 
-      # - name: Activate virtual environment (Windows)
-      #   if: matrix.IS_WINDOWS == true
-      #   run: venv\Scripts\Activate.ps1
 
       - name: Display Pip Version and confirm environment empty
         run: |
