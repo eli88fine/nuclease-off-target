@@ -5,6 +5,7 @@ import time
 
 from freezegun import freeze_time
 from nuclease_off_target import create_dict_by_chromosome_from_genes
+from nuclease_off_target import DnaRequestGenomeMismatchError
 from nuclease_off_target import ExonCoordinates
 from nuclease_off_target import GeneCoordinates
 from nuclease_off_target import GeneIsoformCoordinates
@@ -15,6 +16,7 @@ from nuclease_off_target import IsoformInDifferentChromosomeError
 from nuclease_off_target import IsoformInDifferentStrandError
 from nuclease_off_target import parse_ucsc_refseq_table_into_gene_coordinates
 from nuclease_off_target import SECONDS_BETWEEN_UCSC_REQUESTS
+from nuclease_off_target import UrlNotImplementedForGenomeError
 import pytest
 from stdlib_utils import get_current_file_abs_directory
 
@@ -44,6 +46,40 @@ def test_GenomicSequence_from_coordinates__gets_sequence_from_ucsc_browser():
 
 @pytest.mark.slow
 @pytest.mark.timeout(15)
+def test_GenomicSequence_from_coordinates__gets_rhesus_sequence_from_ucsc_browser():
+    gs = GenomicSequence.from_coordinates("rheMac10", "chr1", 4117157, 4117181, True)
+    assert str(gs.sequence) == "GCCTATGTTATATCCCAACCTGGAT"
+
+
+@pytest.mark.slow
+@pytest.mark.timeout(15)
+def test_GenomicSequence_from_coordinates__gets_negative_strand_rhesus_sequence_from_ucsc_browser():
+    gs = GenomicSequence.from_coordinates("rheMac10", "chrY", 50000, 50010, False)
+    assert str(gs.sequence) == "TAGTCCCAGCT"
+
+
+def test_GenomicSequence_from_coordinates__raises_error_if_url_not_implemented_for_genome():
+    with pytest.raises(UrlNotImplementedForGenomeError, match="eli"):
+        GenomicSequence.from_coordinates("eli", "chr2", 500000, 500010, False)
+
+
+def test_GenomicSequence_from_coordinates__raises_error_if_response_genome_does_not_match_expected(
+    mocker,
+):
+    mocker.patch.object(
+        genomic_sequence,
+        "_extract_genome_build_from_ucsc_response_header_line",
+        autospec=True,
+        return_value="mm10",
+    )
+    with pytest.raises(
+        DnaRequestGenomeMismatchError, match="expected hg38 but found mm10"
+    ):
+        GenomicSequence.from_coordinates("hg38", "chr2", 500000, 500010, False)
+
+
+@pytest.mark.slow
+@pytest.mark.timeout(15)
 def test_GenomicSequence_from_coordinates__gets_sequence_from_ucsc_browser_from_negative_strand():
     gs = GenomicSequence.from_coordinates("hg38", "chr2", 500000, 500010, False)
     assert str(gs.sequence) == "AACCCGTTGGT"
@@ -65,7 +101,9 @@ def test_GenomicSequence_from_coordinates__waits_to_ping_browser(mocker):
     )
     mocked_sleep = mocker.patch.object(time, "sleep", autospec=True)
     mocker.patch.object(
-        genomic_sequence, "set_time_of_last_request_to_ucsc_browser", autospec=True,
+        genomic_sequence,
+        "set_time_of_last_request_to_ucsc_browser",
+        autospec=True,
     )
     gs = GenomicSequence.from_coordinates("hg19", "chrX", 2000000, 2000215, True)
     mocked_request_ucsc.assert_called_once()
@@ -91,7 +129,9 @@ def test_GenomicSequence_from_coordinates__does_not_wait_to_ping_ucsc_if_not_nee
     )
     spied_sleep = mocker.spy(time, "sleep")
     mocker.patch.object(
-        genomic_sequence, "set_time_of_last_request_to_ucsc_browser", autospec=True,
+        genomic_sequence,
+        "set_time_of_last_request_to_ucsc_browser",
+        autospec=True,
     )
 
     GenomicSequence.from_coordinates("hg19", "chrX", 2000000, 2000215, True)
@@ -418,7 +458,9 @@ def test_GeneCoordinates__add_isoform__raises_error_if_isoform_in_different_stra
 ):
     gc = GeneCoordinates("HBG", generic_negative_strand_gene_isoform)
     iso2 = GeneIsoformCoordinates(
-        [ExonCoordinates.from_coordinate_info("hg38", "chr4", 45000, 50000, True),]
+        [
+            ExonCoordinates.from_coordinate_info("hg38", "chr4", 45000, 50000, True),
+        ]
     )
 
     with pytest.raises(IsoformInDifferentStrandError, match=r"HBG.*negative.*positive"):
