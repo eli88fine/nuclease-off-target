@@ -99,7 +99,7 @@ def _find_index_in_alignment_in_crispr_from_three_prime(  # pylint: disable=inva
             break
     else:
         raise NotImplementedError(
-            "The loop should never complete normally---enough letters to create the PAM and any additional sequence should always be found."
+            f"The loop should never complete normally---enough letters to create the PAM and any additional sequence should always be found. {alignment} {crispr_str} {num_bases}"
         )
     return start_idx
 
@@ -510,27 +510,6 @@ class CrisprAlignment:  # pylint:disable=too-few-public-methods
             self.cut_site_coord = (
                 trimmed_genomic_seq.start_coord - 1
             )  # adjust so that the cut coordinate is always on the side of the blunt cut towards the coordinate 1 of the chromosome
-        # cut_site_index = _find_index_in_alignment_in_crispr_from_three_prime(
-        #     self.formatted_alignment, cut_site_bases_from_three_prime_end
-        # )
-        # # print(five_prime_genome_seq)
-        # five_prime_genome_seq = (self.formatted_alignment[2][:cut_site_index]).replace(
-        #     ALIGNMENT_GAP_CHARACTER, ""
-        # )
-        # # print(five_prime_genome_seq)
-        # if self.genomic_sequence.is_positive_strand:
-        #     self.cut_site_coord = (
-        #         self.genomic_sequence.start_coord
-        #         + left_count_to_trim
-        #         + len(five_prime_genome_seq)
-        #         - 1
-        #     )  # subtract 1 to get the base 5' of the cut site
-        # else:
-        #     self.cut_site_coord = (
-        #         self.genomic_sequence.end_coord
-        #         - left_count_to_trim
-        #         - len(five_prime_genome_seq)
-        #     )
 
     def perform_alignment(self) -> None:  # pylint:disable=too-many-locals
         """Align CRISPR to Genome.

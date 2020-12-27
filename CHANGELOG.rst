@@ -1,6 +1,13 @@
 Changelog for nuclease-off-target
 =================================
 
+0.2.7 (2020-12-27)
+------------------
+
+- Added support for querying DNA from rheMac10 genome
+- Lowered delay between UCSC Genome Browser requests to 3 seconds
+
+
 0.2.6 (2020-10-20)
 ------------------
 
