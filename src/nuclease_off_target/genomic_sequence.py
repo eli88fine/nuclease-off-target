@@ -58,6 +58,7 @@ def _extract_genome_build_from_ucsc_response_header_line(  # pylint:disable=inva
 
 
 def request_sequence_from_ucsc(url: str, expected_genome: str) -> str:
+    """Request DNA sequence from UCSC Genome Browser."""
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
     pre_dom_elements = soup.find_all(
