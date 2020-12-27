@@ -9,9 +9,9 @@
 # pip install -e .
 
 pre-commit==2.9.3 # run 'pre-commit install' initially to install the git hooks
-pytest==6.1.1
+pytest==6.2.1
 pytest-cov==2.10.1
-pytest-randomly==3.4.1
+pytest-randomly==3.5.0
 pytest-bdd==4.0.2
 pylint==2.6.0
 pytest-pylint==0.18.0
