@@ -4,6 +4,7 @@ from collections import defaultdict
 import csv
 from dataclasses import dataclass
 import datetime
+import re
 import time
 from typing import Any
 from typing import Dict
@@ -20,8 +21,10 @@ from immutable_data_validation import validate_str
 import requests
 
 from .constants import SECONDS_BETWEEN_UCSC_REQUESTS
+from .exceptions import DnaRequestGenomeMismatchError
 from .exceptions import IsoformInDifferentChromosomeError
 from .exceptions import IsoformInDifferentStrandError
+from .exceptions import UrlNotImplementedForGenomeError
 
 time_of_last_request_to_ucsc_browser = datetime.datetime(
     year=2019, month=1, day=1
@@ -40,7 +43,22 @@ def set_time_of_last_request_to_ucsc_browser(  # pylint:disable=invalid-name # E
     time_of_last_request_to_ucsc_browser = new_time
 
 
-def request_sequence_from_ucsc(url: str) -> str:
+GENOME_BUILD_IN_RESPONSE_HEADER_REGEX = re.compile(r"\&gt\;(\w+)\_")
+
+
+def _extract_genome_build_from_ucsc_response_header_line(  # pylint:disable=invalid-name # Eli (12/27/20): I know this is long, not sure how to shorten it
+    sequence_info_line: str,
+) -> str:
+    match = GENOME_BUILD_IN_RESPONSE_HEADER_REGEX.search(sequence_info_line)
+    if match is None:
+        raise NotImplementedError(
+            f"The line did not contain a genome: {sequence_info_line}"
+        )
+    return match[1]
+
+
+def request_sequence_from_ucsc(url: str, expected_genome: str) -> str:
+    """Request DNA sequence from UCSC Genome Browser."""
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
     pre_dom_elements = soup.find_all(
@@ -48,6 +66,12 @@ def request_sequence_from_ucsc(url: str) -> str:
     )  # the genomic text is contained within a <pre> tag
     sequence_element = pre_dom_elements[0]
     sequence_element_lines = str(sequence_element).split("\n")
+    sequence_info_line = sequence_element_lines[1]
+    actual_genome = _extract_genome_build_from_ucsc_response_header_line(
+        sequence_info_line
+    )
+    if actual_genome != expected_genome:
+        raise DnaRequestGenomeMismatchError(actual_genome, expected_genome)
     lines_of_sequence = sequence_element_lines[2:-1]
     return "".join(lines_of_sequence)
 
@@ -107,7 +131,7 @@ class GeneIsoformCoordinates:
         """Create an instance from a table row.
 
         Intended to be used on data gathered from the USCS Genome Table Browser using the "RefSeq All (ncbiRefSeq)" table under Track "NCBI RefSeq"
-        Example: https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=923625121_aiwBounEVv5j3SwEeuFGRaRYYCOu&clade=mammal&org=&db=hg19&hgta_group=genes&hgta_track=refSeqComposite&hgta_table=ncbiRefSeq&hgta_regionType=genome&position=&hgta_outputType=primaryTable&hgta_outFileName=
+        Example (hg19):   https://genome.ucsc.edu/cgi-bin/hgTables?hgsid=923625121_aiwBounEVv5j3SwEeuFGRaRYYCOu&clade=mammal&org=&db=hg19&hgta_group=genes&hgta_track=refSeqComposite&hgta_table=ncbiRefSeq&hgta_regionType=genome&position=&hgta_outputType=primaryTable&hgta_outFileName=
         """
         all_exons: List[ExonCoordinates] = list()
         num_exons = validate_int(table_row[8])
@@ -334,8 +358,14 @@ class GenomicSequence:
         seconds_to_wait = SECONDS_BETWEEN_UCSC_REQUESTS - seconds_since_last_call
         if seconds_to_wait > 0:
             time.sleep(seconds_to_wait)
-        url = f"https://genome.ucsc.edu/cgi-bin/hgc?hgsid=909569459_N8as0yXh8yH3IXZZJcwFBa5u6it3&g=htcGetDna2&table=&i=mixed&getDnaPos={chromosome}%3A{start_coord}-{end_coord}&db={genome}&hgSeq.cdsExon=1&hgSeq.padding5=0&hgSeq.padding3=0&hgSeq.casing=upper&boolshad.hgSeq.maskRepeats=0&hgSeq.repMasking=lower{'' if is_positive_strand else '&hgSeq.revComp=on'}&boolshad.hgSeq.revComp=1&submit=get+DNA"
-        sequence = request_sequence_from_ucsc(url)
+        if genome in ["hg19", "hg38"]:
+            session_id = "909569459_N8as0yXh8yH3IXZZJcwFBa5u6it3"
+        elif genome == "rheMac10":
+            session_id = "984495847_dAhfBDjxXdqsabeD2KSx3Tv3LPzC"
+        else:
+            raise UrlNotImplementedForGenomeError(genome)
+        url = f"https://genome.ucsc.edu/cgi-bin/hgc?hgsid={session_id}&g=htcGetDna2&table=&i=mixed&getDnaPos={chromosome}%3A{start_coord}-{end_coord}&db={genome}&hgSeq.cdsExon=1&hgSeq.padding5=0&hgSeq.padding3=0&hgSeq.casing=upper&boolshad.hgSeq.maskRepeats=0&hgSeq.repMasking=lower{'' if is_positive_strand else '&hgSeq.revComp=on'}&boolshad.hgSeq.revComp=1&submit=get+DNA"
+        sequence = request_sequence_from_ucsc(url, genome)
         set_time_of_last_request_to_ucsc_browser(datetime.datetime.utcnow())
         return cls(genome, chromosome, start_coord, is_positive_strand, sequence)
 

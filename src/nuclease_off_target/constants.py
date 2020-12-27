@@ -4,7 +4,7 @@ from typing import Dict
 from typing import Union
 
 
-SECONDS_BETWEEN_UCSC_REQUESTS = 10
+SECONDS_BETWEEN_UCSC_REQUESTS = 3  # 10 # Eli (12/26/20): 3 seconds seems sufficient to avoid getting locked out of the system
 # for displaying vertical alignments
 VERTICAL_ALIGNMENT_MATCH_CHARACTER = " "
 VERTICAL_ALIGNMENT_MISMATCH_CHARACTER = "X"

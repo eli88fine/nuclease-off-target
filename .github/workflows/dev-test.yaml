@@ -23,22 +23,17 @@ jobs:
       matrix:
         os:
           - "ubuntu-18.04"
+          - "ubuntu-20.04"
           - "windows-2019"
         python-version:
             - 3.7
             - 3.8
+            - 3.9
         include:
           # only enable coverage on the fastest job
-          - os: "ubuntu-18.04"
-            python-version: "3.7"
-            ENABLE_CODE_COVERAGE: true
+          - os: "ubuntu-20.04"
+            python-version: "3.8"
             IS_FASTEST_JOB: true
-          - os: "ubuntu-18.04"
-            IS_LINUX: true
-          - os: "windows-2019"
-            IS_WINDOWS: true
-    env:
-      ENABLE_CODE_COVERAGE: ${{ matrix.ENABLE_CODE_COVERAGE }}
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
@@ -57,10 +52,10 @@ jobs:
           python -m venv venv
 
       - name: Activate virtual environment (Linux/MacOS)
-        if: matrix.IS_LINUX == true
+        if: runner.os == 'Linux'
         run: . venv/bin/activate
       - name: Activate virtual environment (Windows)
-        if: matrix.IS_WINDOWS == true
+        if: runner.os == 'Windows'
         run: venv\Scripts\Activate.ps1
 
       - name: Display Pip Version and confirm environment empty

@@ -495,7 +495,12 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
         )
     ),
     [
-        ("GTTAGGACTATTAGCGTGATNNGRRT", "GTTAGGACTATTAGCGTGATAAGAGT", 0, "exact match",),
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGAGT",
+            0,
+            "exact match",
+        ),
         (
             "GTTAGGACTATTAGCGTGATNNGRRT",
             "GTTAGGACTATTAGCGTGATAAGAGA",
@@ -641,7 +646,10 @@ def test_CrisprAlignment__align_to_genomic_site__cut_site(
     ],
 )
 def test_sa_cas_off_target_score(
-    test_crispr_alignment, test_genome_alignment, expected_score, test_description,
+    test_crispr_alignment,
+    test_genome_alignment,
+    expected_score,
+    test_description,
 ):
     actual = sa_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
     assert actual == approx(expected_score)
