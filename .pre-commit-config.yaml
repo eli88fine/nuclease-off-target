@@ -1,4 +1,4 @@
-minimum_pre_commit_version: '2.9.3'
+minimum_pre_commit_version: 2.10.0
 fail_fast: false
 repos:
 
@@ -75,7 +75,7 @@ repos:
 
 # Linting
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.790  # pick a git hash / tag to point to
+    rev: v0.800  # pick a git hash / tag to point to
     hooks:
     -   id: mypy
         exclude: prerelease.py

@@ -14,6 +14,7 @@ from nuclease_off_target import GenomicSequence
 from nuclease_off_target import sa_cas_off_target_score
 from nuclease_off_target import SaCasTarget
 from nuclease_off_target import SEPARATION_BETWEEN_GUIDE_AND_PAM
+from nuclease_off_target import SpCasTarget
 from nuclease_off_target import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
@@ -35,6 +36,16 @@ def test_SaCasTarget_init_sets_cutsite_and_pam_and_guide():
         ct.cut_site_relative_to_pam == CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"]
     )
     assert ct.pam == CAS_VARIETIES["Sa"]["PAM"]
+
+
+def test_SpCasTarget_init_sets_cutsite_and_pam_and_guide():
+    expected_guide = "GTTGCCCCACAGGGCAGTAA"
+    ct = SpCasTarget(expected_guide)
+    assert ct.guide_target == expected_guide
+    assert (
+        ct.cut_site_relative_to_pam == CAS_VARIETIES["Sp"]["cut_site_relative_to_pam"]
+    )
+    assert ct.pam == CAS_VARIETIES["Sp"]["PAM"]
 
 
 def test_CrisprAlignment_perform_alignment_on_sequence_that_failed():

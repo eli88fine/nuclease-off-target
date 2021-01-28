@@ -62,12 +62,24 @@ class CrisprTarget:  # pylint:disable=too-few-public-methods
         self.sequence = Seq(guide_target + pam)
 
 
-class SaCasTarget(CrisprTarget):  # pylint:disable=too-few-public-methods
-    pam = str(CAS_VARIETIES["Sa"]["PAM"])
-    cut_site_relative_to_pam = int(CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"])  # type: ignore # Eli (10/12/20) - not sure how to tell mypy here that this will definitely be an int
+class SpeciesSpecificCrisprTarget(
+    CrisprTarget
+):  # pylint:disable=too-few-public-methods
+    pam: str
+    cut_site_relative_to_pam: int
 
     def __init__(self, guide_target: str) -> None:
         super().__init__(guide_target, self.pam, self.cut_site_relative_to_pam)
+
+
+class SaCasTarget(SpeciesSpecificCrisprTarget):  # pylint:disable=too-few-public-methods
+    pam = str(CAS_VARIETIES["Sa"]["PAM"])
+    cut_site_relative_to_pam = int(CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"])  # type: ignore # Eli (10/12/20) - not sure how to tell mypy here that this will definitely be an int
+
+
+class SpCasTarget(SpeciesSpecificCrisprTarget):  # pylint:disable=too-few-public-methods
+    pam = str(CAS_VARIETIES["Sp"]["PAM"])
+    cut_site_relative_to_pam = int(CAS_VARIETIES["Sp"]["cut_site_relative_to_pam"])  # type: ignore # Eli (10/12/20) - not sure how to tell mypy here that this will definitely be an int
 
 
 def extract_cigar_str_from_result(result: Result) -> str:
