@@ -154,7 +154,10 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
                 score += 40
             else:
                 score += guide_mismatch_penalties[
-                    crispr_base_position - len(SaCasTarget.pam)
+                    crispr_base_position
+                    - len(
+                        SaCasTarget.pam  # pylint:disable=no-member # Eli (1/28/21): not sure why pylint isn't recognizing the .pam class attribute
+                    )
                 ]
         if is_rna_bulge:
             if crispr_base_position in SA_CAS_PAM_POSITIONS_FOR_BULGES:
@@ -179,10 +182,10 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
 
 def sp_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int]:
     """Calculate COSMID off-target score for SpCas alignment."""
-    return 0
     # score: Union[float, int] = 0
     # rev_crispr = "".join(reversed(alignment[0]))
     # rev_genome = "".join(reversed(alignment[2]))
+    return 0 * len(alignment)
     # crispr_base_position = 0
     # guide_mismatch_penalties = CAS_VARIETIES["Sa"][
     #     "mismatch-penalties-starting-from-PAM"
