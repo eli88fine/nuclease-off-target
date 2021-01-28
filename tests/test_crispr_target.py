@@ -14,6 +14,7 @@ from nuclease_off_target import GenomicSequence
 from nuclease_off_target import sa_cas_off_target_score
 from nuclease_off_target import SaCasTarget
 from nuclease_off_target import SEPARATION_BETWEEN_GUIDE_AND_PAM
+from nuclease_off_target import sp_cas_off_target_score
 from nuclease_off_target import SpCasTarget
 from nuclease_off_target import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
@@ -663,6 +664,176 @@ def test_sa_cas_off_target_score(
     test_description,
 ):
     actual = sa_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
+    assert actual == approx(expected_score)
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
+            "test_crispr_alignment",
+            "test_genome_alignment",
+            "expected_score",
+            "test_description",
+        )
+    ),
+    [
+        (
+            "GTTAGGACTATTAGCGTGATNNGRRT",
+            "GTTAGGACTATTAGCGTGATAAGAGT",
+            0,
+            "exact match",
+        ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGATAAGAGA",
+        #     2,
+        #     "mismatch in PAM T",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGATAAGACA",
+        #     22,
+        #     "mismatch in PAM T and last R",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGATAAGA" + ALIGNMENT_GAP_CHARACTER + "T",
+        #     20.3,
+        #     "RNA bulge for last R",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGATAAG" + ALIGNMENT_GAP_CHARACTER + "AT",
+        #     20.3,
+        #     "RNA bulge for first R",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGATAA" + ALIGNMENT_GAP_CHARACTER + "AAT",
+        #     40.3,
+        #     "RNA bulge for PAM G",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
+        #     "GTTAGGACTATTAGCGTGATAAGAGTT",
+        #     20.3,
+        #     "DNA bulge for last R",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGR" + ALIGNMENT_GAP_CHARACTER + "RT",
+        #     "GTTAGGACTATTAGCGTGATAAGACGT",
+        #     20.3,
+        #     "DNA bulge for first R",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNG" + ALIGNMENT_GAP_CHARACTER + "RRT",
+        #     "GTTAGGACTATTAGCGTGATAAGTGGT",
+        #     40.3,
+        #     "DNA bulge for PAM G",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNN" + ALIGNMENT_GAP_CHARACTER + "GRRT",
+        #     "GTTAGGACTATTAGCGTGATAATGGGT",
+        #     40.3,
+        #     "DNA bulge for last PAM N",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATN" + ALIGNMENT_GAP_CHARACTER + "NGRRT",
+        #     "GTTAGGACTATTAGCGTGATAATGGGT",
+        #     40.3,
+        #     "DNA bulge for first PAM N",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGATAAGCAA",
+        #     22,
+        #     "mismatch in PAM T and first R",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGATAAGCCT",
+        #     40,
+        #     "mismatch in both PAM Rs",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGATAAAAGT",
+        #     40,
+        #     "mismatch in PAM G",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
+        #     "GTTAGGACTATTAGCGTGATAATAGTT",
+        #     60.3,
+        #     "DNA bulge for last R and mismatch in PAM G",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTGA" + ALIGNMENT_GAP_CHARACTER + "AAGAAT",
+        #     6.51,
+        #     "RNA bulge just before PAM",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGAT" + ALIGNMENT_GAP_CHARACTER + "NNGRRT",
+        #     "GTTAGGACTATTAGCGTGATCAAGAAT",
+        #     6.7,
+        #     "DNA bulge just before PAM",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTG" + ALIGNMENT_GAP_CHARACTER + "TAAGAAT",
+        #     5.51,
+        #     "RNA bulge at position number 2 5' of PAM",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGTTCTNNGRRT",
+        #     9,
+        #     "Mismatches at positions number 2 and 3 5' of PAM",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GTTAGGACTATTAGCGCGATNNGRRT",
+        #     3,
+        #     "Mismatch at position number 4 5' of PAM",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GCTAGGACTATTAACGTGATNNGRRT",
+        #     1.43,
+        #     "Mismatch at position number 7 and 19 5' of PAM",
+        # ),
+        # (
+        #     "ACGTTAGGACTATTAGCGTGATNNGRRT",
+        #     "GGGTTAGGACTATTAGCGTGATNNGRRT",
+        #     0.2,
+        #     "Mismatch at positions number 21 and 22 5' of PAM",
+        # ),
+        # (
+        #     "GTTAGGACTATTAGCGTGATNNGRRT",
+        #     "G"
+        #     + ALIGNMENT_GAP_CHARACTER
+        #     + "TAGGACTATTAGCGTGA"
+        #     + ALIGNMENT_GAP_CHARACTER
+        #     + "AAGAAT",
+        #     12.15,
+        #     "RNA bulge just before PAM and near 5' end of guide triggers the extra 5 point 2 bulges penalty",
+        # ),
+        # (
+        #     "G" + ALIGNMENT_GAP_CHARACTER + "TTAGGACTATTAGCGTGATNNGRRT",
+        #     "GATTAGGACTATTAGCGTGA" + ALIGNMENT_GAP_CHARACTER + "AAGAAT",
+        #     12.33,
+        #     "RNA bulge just before PAM and DNA bulge near 5' end of guide triggers the extra 5 point 2 bulges penalty",
+        # ),
+    ],
+)
+def test_sp_cas_off_target_score(
+    test_crispr_alignment,
+    test_genome_alignment,
+    expected_score,
+    test_description,
+):
+    actual = sp_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
     assert actual == approx(expected_score)
 
 

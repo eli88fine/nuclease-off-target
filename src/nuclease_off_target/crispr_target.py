@@ -8,6 +8,7 @@ from typing import Tuple
 from typing import Union
 
 from Bio.Seq import Seq
+from immutabledict import immutabledict
 import parasail
 from parasail.bindings_v2 import Result
 from stdlib_utils import is_system_windows
@@ -128,7 +129,7 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
     guide_mismatch_penalties = CAS_VARIETIES["Sa"][
         "mismatch-penalties-starting-from-PAM"
     ]
-    if not isinstance(guide_mismatch_penalties, dict):
+    if not isinstance(guide_mismatch_penalties, immutabledict):
         raise NotImplementedError(
             "The mismatch penalties should always be a dictionary."
         )
@@ -152,7 +153,9 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
             ):  # treat any DNA bulges in the "N"s of the PAM as a bulge at the G
                 score += 40
             else:
-                score += guide_mismatch_penalties[crispr_base_position - 6]
+                score += guide_mismatch_penalties[
+                    crispr_base_position - len(SaCasTarget.pam)
+                ]
         if is_rna_bulge:
             if crispr_base_position in SA_CAS_PAM_POSITIONS_FOR_BULGES:
                 score += 0.3
@@ -172,6 +175,62 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
         if not is_dna_bulge:
             crispr_base_position += 1
     return score
+
+
+def sp_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int]:
+    """Calculate COSMID off-target score for SpCas alignment."""
+    return 0
+    # score: Union[float, int] = 0
+    # rev_crispr = "".join(reversed(alignment[0]))
+    # rev_genome = "".join(reversed(alignment[2]))
+    # crispr_base_position = 0
+    # guide_mismatch_penalties = CAS_VARIETIES["Sa"][
+    #     "mismatch-penalties-starting-from-PAM"
+    # ]
+    # if not isinstance(guide_mismatch_penalties, dict):
+    #     raise NotImplementedError(
+    #         "The mismatch penalties should always be a dictionary."
+    #     )
+    # total_bulge_count = 0
+    # for index, crispr_char in enumerate(rev_crispr):
+    #     genome_char = rev_genome[index]
+    #     is_dna_bulge = crispr_char == ALIGNMENT_GAP_CHARACTER
+    #     is_rna_bulge = genome_char == ALIGNMENT_GAP_CHARACTER
+    #     is_mismatch = is_dna_bulge or is_rna_bulge
+    #     if not is_mismatch:
+    #         is_mismatch = not check_base_match(crispr_char, genome_char)
+    #     if is_mismatch:
+    #         if crispr_base_position == 0:
+    #             score += 2
+    #         elif crispr_base_position in (1, 2):
+    #             score += 20
+    #         elif crispr_base_position in (
+    #             3,
+    #             4,
+    #             5,
+    #         ):  # treat any DNA bulges in the "N"s of the PAM as a bulge at the G
+    #             score += 40
+    #         else:
+    #             score += guide_mismatch_penalties[crispr_base_position - len(SaCasTarget.pam)]
+    #     if is_rna_bulge:
+    #         if crispr_base_position in SA_CAS_PAM_POSITIONS_FOR_BULGES:
+    #             score += 0.3
+    #         else:
+    #             score += 0.51
+    #         total_bulge_count += 1
+    #         if total_bulge_count == 2:
+    #             score += 5  # Eli (10/19/20): request was made to add an extra 5 point penalty for the 2nd observed bulge
+    #     if is_dna_bulge:
+    #         if crispr_base_position in SA_CAS_PAM_POSITIONS_FOR_BULGES:
+    #             score += 0.3
+    #         else:
+    #             score += 0.7
+    #         total_bulge_count += 1
+    #         if total_bulge_count == 2:
+    #             score += 5  # Eli (10/19/20): request was made to add an extra 5 point penalty for the 2nd observed bulge
+    #     if not is_dna_bulge:
+    #         crispr_base_position += 1
+    # return score
 
 
 def create_space_in_alignment_between_guide_and_pam(  # pylint:disable=invalid-name # Eli (10/9/20): I know this is too long, but unsure a better way to describe it
