@@ -3,13 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to CHANGE_THIS_TO_NAME_OF_PACKAGE's documentation!
-==========================================================
+Welcome to nuclease-off-target's documentation!
+===============================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+.. automodule:: nuclease_off_target.crispr_target
 
 
 Indices and tables
