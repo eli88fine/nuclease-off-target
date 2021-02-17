@@ -11,6 +11,7 @@ Welcome to nuclease-off-target's documentation!
    :caption: Contents:
 
 .. automodule:: nuclease_off_target.crispr_target
+   :members: sa_cas_off_target_score
 
 
 Indices and tables

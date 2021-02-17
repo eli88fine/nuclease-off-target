@@ -962,6 +962,21 @@ def test_sp_cas_off_target_score(
             },
             "another test for multiple possible alignments",
         ),
+        (
+            "GTTAGGACTATTAGCGTGATN" + "NGRRT",
+            "GTTAGGACTATTAGCGTGATAATGGGT",
+            1,
+            1,
+            0,
+            1,
+            {
+                (
+                    "GTTAGGACTATTAGCGTGATNN" + ALIGNMENT_GAP_CHARACTER + "GRRT",
+                    "GTTAGGACTATTAGCGTGATAATGGGT",
+                )
+            },
+            "A DNA bulge next to the Ns in a PAM is currently not pushed in the 5' direction and stays in the 3' part of the PAM, for future this behavior should probably be reversed",
+        ),
     ],
 )
 def test_find_all_possible_alignments(
