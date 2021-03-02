@@ -227,7 +227,52 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
 
 
 def sp_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int]:
-    """Calculate COSMID off-target score for SpCas alignment."""
+    """Calculate COSMID off-target score for SpCas alignment.
+
+    The full pairwise alignment is scanned and any base mismatches, DNA bulges or RNA bulges are added to compute the overall score.
+
+    The scan goes from the 3' and to the 5' end of the alignment, so DNA bulge rules are scored according to the position of the base in the guide 3' to the bulge (unless otherwise noted).
+
+    The term 'misalignment' refers to any type of issue: base mismatches (i.e. substitutions), DNA bulges, or RNA bulges. In some cases there is a base amount added to the score for any type of misalignment, and then specific additions for certain types of misalignments.
+
+    Positional Rules:
+        #. Misalignment in the final 'G' of the PAM: 20
+        #. An 'A' base mismatch in the 5' 'G' of the PAM: 0.3
+        #. A 'C' or 'T' base mismatch in the 5' 'G' of the PAM: 20
+        #. DNA or RNA bulge associated with any position in the PAM: 20
+        #. Any type of misalignment associated with this position in the guide (counting with the 3' distal base as 1):
+            #. 6
+            #. 5
+            #. 4
+            #. 3
+            #. 2.3
+            #. 1.9
+            #. 1.3
+            #. 1.1
+            #. 0.8
+            #. 0.7
+            #. 0.5
+            #. 0.35
+            #. 0.27
+            #. 0.23
+            #. 0.21
+            #. 0.19
+            #. 0.17
+            #. 0.15
+            #. 0.13
+            #. 0.12
+            #. 0.1
+            #. 0.1
+
+        #. RNA Bulges in the guide sequence: 0.51
+        #. DNA Bulges in the guide sequence: 0.7
+
+    After scanning each position individually, additional wholistic additions to the score are applied based on the entire alignment and all misalignments observed.
+
+    Overall Rules:
+        #. If at least two DNA bulges appear in the overall alignment: 5
+        #. If at least two RNA bulges appear in the overall alignment: 5
+    """
     # score: Union[float, int] = 0
     # rev_crispr = "".join(reversed(alignment[0]))
     # rev_genome = "".join(reversed(alignment[2]))
