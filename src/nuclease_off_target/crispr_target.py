@@ -276,7 +276,9 @@ def sp_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
     score: Union[float, int] = 0
     rev_crispr = "".join(reversed(alignment[0]))
     rev_genome = "".join(reversed(alignment[2]))
-    length_of_pam = len(SpCasTarget.pam)
+    length_of_pam = len(
+        SpCasTarget.pam  # pylint:disable=no-member # Eli (3/29/21): not sure why pylint isn't recognizing the .pam class attribute
+    )
     crispr_base_position = 0
     guide_mismatch_penalties = CAS_VARIETIES["Sa"][
         "mismatch-penalties-starting-from-PAM"
