@@ -14,6 +14,8 @@ from nuclease_off_target import GenomicSequence
 from nuclease_off_target import sa_cas_off_target_score
 from nuclease_off_target import SaCasTarget
 from nuclease_off_target import SEPARATION_BETWEEN_GUIDE_AND_PAM
+from nuclease_off_target import sp_cas_off_target_score
+from nuclease_off_target import SpCasTarget
 from nuclease_off_target import VERTICAL_ALIGNMENT_DNA_BULGE_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MATCH_CHARACTER
 from nuclease_off_target import VERTICAL_ALIGNMENT_MISMATCH_CHARACTER
@@ -35,6 +37,16 @@ def test_SaCasTarget_init_sets_cutsite_and_pam_and_guide():
         ct.cut_site_relative_to_pam == CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"]
     )
     assert ct.pam == CAS_VARIETIES["Sa"]["PAM"]
+
+
+def test_SpCasTarget_init_sets_cutsite_and_pam_and_guide():
+    expected_guide = "GTTGCCCCACAGGGCAGTAA"
+    ct = SpCasTarget(expected_guide)
+    assert ct.guide_target == expected_guide
+    assert (
+        ct.cut_site_relative_to_pam == CAS_VARIETIES["Sp"]["cut_site_relative_to_pam"]
+    )
+    assert ct.pam == CAS_VARIETIES["Sp"]["PAM"]
 
 
 def test_CrisprAlignment_perform_alignment_on_sequence_that_failed():
@@ -658,6 +670,128 @@ def test_sa_cas_off_target_score(
 @pytest.mark.parametrize(
     ",".join(
         (
+            "test_crispr_alignment",
+            "test_genome_alignment",
+            "expected_score",
+            "test_description",
+        )
+    ),
+    [
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGGG",
+            0,
+            "exact match",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGGT",
+            20,
+            "mismatch in final G of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGTG",
+            20,
+            "T in middle G position of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGCG",
+            20,
+            "C in middle G position of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGAG",
+            0.3,
+            "A in middle G position of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGAA",
+            20.3,
+            "A in middle G position of PAM and mismatch in 3' position",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTN" + ALIGNMENT_GAP_CHARACTER + "G",
+            20,
+            "RNA bulge over the first PAM G",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTN" + ALIGNMENT_GAP_CHARACTER + "GG",
+            "GTGTTCATCTTTGGTTTTGTNCGG",
+            20,
+            "DNA bulge between the PAM N and G",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNG" + ALIGNMENT_GAP_CHARACTER + "G",
+            "GTGTTCATCTTTGGTTTTGTNGTG",
+            20,
+            "DNA bulge between the two PAM Gs",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGAGGG",
+            6,
+            "mismatch in base just 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTT" + ALIGNMENT_GAP_CHARACTER + "TGGG",
+            5.51,
+            "RNA bulge at position number 2 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTGATGGG",
+            9,
+            "Mismatches at positions number 2 and 3 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTATGTNGG",
+            3,
+            "Mismatch at position number 4 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GCGTTCATCTTTGATTTTGTGGG",
+            1.43,
+            "Mismatch at position number 7 and 19 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "G"
+            + ALIGNMENT_GAP_CHARACTER
+            + "GTTCATCTTTGGTTTTG"
+            + ALIGNMENT_GAP_CHARACTER
+            + "GGG",
+            12.15,
+            "RNA bulge just before PAM and near 5' end of guide triggers the extra 5 point 2 bulges penalty",
+        ),
+        (
+            "G" + ALIGNMENT_GAP_CHARACTER + "TGTTCATCTTTGGTTTTGTNGG",
+            "GATGTTCATCTTTGGTTTTG" + ALIGNMENT_GAP_CHARACTER + "GGG",
+            12.33,
+            "RNA bulge just before PAM and DNA bulge near 5' end of guide triggers the extra 5 point 2 bulges penalty",
+        ),
+    ],
+)
+def test_sp_cas_off_target_score(
+    test_crispr_alignment,
+    test_genome_alignment,
+    expected_score,
+    test_description,
+):
+    actual = sp_cas_off_target_score((test_crispr_alignment, "", test_genome_alignment))
+    assert actual == approx(expected_score)
+
+
+@pytest.mark.parametrize(
+    ",".join(
+        (
             "test_crispr_seq",
             "test_genome_seq",
             "test_mismatches",
@@ -779,6 +913,21 @@ def test_sa_cas_off_target_score(
                 # -------- #
             },
             "another test for multiple possible alignments",
+        ),
+        (
+            "GTTAGGACTATTAGCGTGATN" + "NGRRT",
+            "GTTAGGACTATTAGCGTGATAATGGGT",
+            1,
+            1,
+            0,
+            1,
+            {
+                (
+                    "GTTAGGACTATTAGCGTGATNN" + ALIGNMENT_GAP_CHARACTER + "GRRT",
+                    "GTTAGGACTATTAGCGTGATAATGGGT",
+                )
+            },
+            "A DNA bulge next to the Ns in a PAM is currently not pushed in the 5' direction and stays in the 3' part of the PAM, for future this behavior should probably be reversed",
         ),
     ],
 )

@@ -8,6 +8,7 @@ from typing import Tuple
 from typing import Union
 
 from Bio.Seq import Seq
+from immutabledict import immutabledict
 import parasail
 from parasail.bindings_v2 import Result
 from stdlib_utils import is_system_windows
@@ -62,12 +63,24 @@ class CrisprTarget:  # pylint:disable=too-few-public-methods
         self.sequence = Seq(guide_target + pam)
 
 
-class SaCasTarget(CrisprTarget):  # pylint:disable=too-few-public-methods
-    pam = str(CAS_VARIETIES["Sa"]["PAM"])
-    cut_site_relative_to_pam = int(CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"])  # type: ignore # Eli (10/12/20) - not sure how to tell mypy here that this will definitely be an int
+class SpeciesSpecificCrisprTarget(
+    CrisprTarget
+):  # pylint:disable=too-few-public-methods
+    pam: str
+    cut_site_relative_to_pam: int
 
     def __init__(self, guide_target: str) -> None:
         super().__init__(guide_target, self.pam, self.cut_site_relative_to_pam)
+
+
+class SaCasTarget(SpeciesSpecificCrisprTarget):  # pylint:disable=too-few-public-methods
+    pam = str(CAS_VARIETIES["Sa"]["PAM"])
+    cut_site_relative_to_pam = int(CAS_VARIETIES["Sa"]["cut_site_relative_to_pam"])  # type: ignore # Eli (10/12/20) - not sure how to tell mypy here that this will definitely be an int
+
+
+class SpCasTarget(SpeciesSpecificCrisprTarget):  # pylint:disable=too-few-public-methods
+    pam = str(CAS_VARIETIES["Sp"]["PAM"])
+    cut_site_relative_to_pam = int(CAS_VARIETIES["Sp"]["cut_site_relative_to_pam"])  # type: ignore # Eli (10/12/20) - not sure how to tell mypy here that this will definitely be an int
 
 
 def extract_cigar_str_from_result(result: Result) -> str:
@@ -108,7 +121,53 @@ SA_CAS_PAM_POSITIONS_FOR_BULGES = (1, 2, 3, 4, 5)
 
 
 def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int]:
-    """Calculate COSMID off-target score for SaCas alignment."""
+    """Calculate COSMID off-target score for SaCas alignment.
+
+    The full pairwise alignment is scanned and any base mismatches, DNA bulges or RNA bulges are added to compute the overall score.
+
+    The scan goes from the 3' and to the 5' end of the alignment, so DNA bulge rules are scored according to the position of the base in the guide 3' to the bulge (unless otherwise noted).
+
+    The term 'misalignment' refers to any type of issue: base mismatches (i.e. substitutions), DNA bulges, or RNA bulges. In some cases there is a base amount added to the score for any type of misalignment, and then specific additions for certain types of misalignments.
+
+    Positional Rules:
+        #. Misalignment in the final 'T' of the PAM: 2
+        #. Misalignment in either 'R' of the PAM: 20
+        #. Misalignment in the 'G' of the PAM: 40
+        #. DNA Bulges that could ambiguously be placed 5' of either of the two N's in the PAM: 40
+        #. Additional score for RNA/DNA Bulges associated with any PAM position: 0.3
+        #. Any type of misalignment associated with this position in the guide (counting with the 3' distal base as 1):
+            #. 6
+            #. 5
+            #. 4
+            #. 3
+            #. 2.3
+            #. 1.9
+            #. 1.3
+            #. 1.1
+            #. 0.8
+            #. 0.7
+            #. 0.5
+            #. 0.35
+            #. 0.27
+            #. 0.23
+            #. 0.21
+            #. 0.19
+            #. 0.17
+            #. 0.15
+            #. 0.13
+            #. 0.12
+            #. 0.1
+            #. 0.1
+
+        #. RNA Bulges in the guide sequence: 0.51
+        #. DNA Bulges in the guide sequence: 0.7
+
+    After scanning each position individually, additional wholistic additions to the score are applied based on the entire alignment and all misalignments observed.
+
+    Overall Rules:
+        #. If at least two DNA bulges appear in the overall alignment: 5
+        #. If at least two RNA bulges appear in the overall alignment: 5
+    """
     score: Union[float, int] = 0
     rev_crispr = "".join(reversed(alignment[0]))
     rev_genome = "".join(reversed(alignment[2]))
@@ -116,7 +175,7 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
     guide_mismatch_penalties = CAS_VARIETIES["Sa"][
         "mismatch-penalties-starting-from-PAM"
     ]
-    if not isinstance(guide_mismatch_penalties, dict):
+    if not isinstance(guide_mismatch_penalties, immutabledict):
         raise NotImplementedError(
             "The mismatch penalties should always be a dictionary."
         )
@@ -140,7 +199,12 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
             ):  # treat any DNA bulges in the "N"s of the PAM as a bulge at the G
                 score += 40
             else:
-                score += guide_mismatch_penalties[crispr_base_position - 6]
+                score += guide_mismatch_penalties[
+                    crispr_base_position
+                    - len(
+                        SaCasTarget.pam  # pylint:disable=no-member # Eli (1/28/21): not sure why pylint isn't recognizing the .pam class attribute
+                    )
+                ]
         if is_rna_bulge:
             if crispr_base_position in SA_CAS_PAM_POSITIONS_FOR_BULGES:
                 score += 0.3
@@ -157,6 +221,103 @@ def sa_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int
             total_bulge_count += 1
             if total_bulge_count == 2:
                 score += 5  # Eli (10/19/20): request was made to add an extra 5 point penalty for the 2nd observed bulge
+        if not is_dna_bulge:
+            crispr_base_position += 1
+    return score
+
+
+def sp_cas_off_target_score(alignment: Tuple[str, str, str]) -> Union[float, int]:
+    """Calculate COSMID off-target score for SpCas alignment.
+
+    The full pairwise alignment is scanned and any base mismatches, DNA bulges or RNA bulges are added to compute the overall score.
+
+    The scan goes from the 3' and to the 5' end of the alignment, so DNA bulge rules are scored according to the position of the base in the guide 3' to the bulge (unless otherwise noted).
+
+    The term 'misalignment' refers to any type of issue: base mismatches (i.e. substitutions), DNA bulges, or RNA bulges. In some cases there is a base amount added to the score for any type of misalignment, and then specific additions for certain types of misalignments.
+
+    Positional Rules:
+        #. Misalignment in the final 'G' of the PAM: 20
+        #. An 'A' base mismatch in the 5' 'G' of the PAM: 0.3
+        #. A 'C' or 'T' base mismatch in the 5' 'G' of the PAM: 20
+        #. DNA or RNA bulge associated with any position in the PAM: 20
+        #. Any type of misalignment associated with this position in the guide (counting with the 3' distal base as 1):
+            #. 6
+            #. 5
+            #. 4
+            #. 3
+            #. 2.3
+            #. 1.9
+            #. 1.3
+            #. 1.1
+            #. 0.8
+            #. 0.7
+            #. 0.5
+            #. 0.35
+            #. 0.27
+            #. 0.23
+            #. 0.21
+            #. 0.19
+            #. 0.17
+            #. 0.15
+            #. 0.13
+            #. 0.12
+            #. 0.1
+            #. 0.1
+
+        #. RNA Bulges in the guide sequence: 0.51
+        #. DNA Bulges in the guide sequence: 0.7
+
+    After scanning each position individually, additional wholistic additions to the score are applied based on the entire alignment and all misalignments observed.
+
+    Overall Rules:
+        #. If at least two DNA bulges appear in the overall alignment: 5
+        #. If at least two RNA bulges appear in the overall alignment: 5
+    """
+    score: Union[float, int] = 0
+    rev_crispr = "".join(reversed(alignment[0]))
+    rev_genome = "".join(reversed(alignment[2]))
+    length_of_pam = len(
+        SpCasTarget.pam  # pylint:disable=no-member # Eli (3/29/21): not sure why pylint isn't recognizing the .pam class attribute
+    )
+    crispr_base_position = 0
+    guide_mismatch_penalties = CAS_VARIETIES["Sa"][
+        "mismatch-penalties-starting-from-PAM"
+    ]
+    if not isinstance(guide_mismatch_penalties, immutabledict):
+        raise NotImplementedError(
+            "The mismatch penalties should always be a dictionary."
+        )
+    total_bulge_count = 0
+    for index, crispr_char in enumerate(rev_crispr):
+        genome_char = rev_genome[index]
+        is_dna_bulge = crispr_char == ALIGNMENT_GAP_CHARACTER
+        is_rna_bulge = genome_char == ALIGNMENT_GAP_CHARACTER
+        is_mismatch = is_dna_bulge or is_rna_bulge
+        if not is_mismatch:
+            is_mismatch = not check_base_match(crispr_char, genome_char)
+        if is_mismatch:
+            if crispr_base_position == 0:
+                score += 20
+            elif crispr_base_position in (1, 2):
+                score += 0.3
+                if genome_char != "A":
+                    score += 19.7
+            else:
+                score += guide_mismatch_penalties[crispr_base_position - length_of_pam]
+        if is_rna_bulge:
+            if crispr_base_position >= length_of_pam:
+                score += 0.51
+            total_bulge_count += 1
+            if total_bulge_count == 2:
+                score += 5
+        if is_dna_bulge:
+            if (
+                crispr_base_position >= length_of_pam
+            ):  # in SA_CAS_PAM_POSITIONS_FOR_BULGES:
+                score += 0.7
+            total_bulge_count += 1
+            if total_bulge_count == 2:
+                score += 5
         if not is_dna_bulge:
             crispr_base_position += 1
     return score

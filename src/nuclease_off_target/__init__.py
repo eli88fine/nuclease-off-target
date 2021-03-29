@@ -18,6 +18,8 @@ from .crispr_target import extract_cigar_str_from_result
 from .crispr_target import find_all_possible_alignments
 from .crispr_target import sa_cas_off_target_score
 from .crispr_target import SaCasTarget
+from .crispr_target import sp_cas_off_target_score
+from .crispr_target import SpCasTarget
 from .exceptions import DnaRequestGenomeMismatchError
 from .exceptions import IsoformInDifferentChromosomeError
 from .exceptions import IsoformInDifferentStrandError
@@ -60,4 +62,6 @@ __all__ = [
     "IsoformInDifferentStrandError",
     "DnaRequestGenomeMismatchError",
     "UrlNotImplementedForGenomeError",
+    "SpCasTarget",
+    "sp_cas_off_target_score",
 ]
