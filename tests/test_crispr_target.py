@@ -678,153 +678,105 @@ def test_sa_cas_off_target_score(
     ),
     [
         (
-            "GTTAGGACTATTAGCGTGATNNGRRT",
-            "GTTAGGACTATTAGCGTGATAAGAGT",
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGGG",
             0,
             "exact match",
         ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGATAAGAGA",
-        #     2,
-        #     "mismatch in PAM T",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGATAAGACA",
-        #     22,
-        #     "mismatch in PAM T and last R",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGATAAGA" + ALIGNMENT_GAP_CHARACTER + "T",
-        #     20.3,
-        #     "RNA bulge for last R",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGATAAG" + ALIGNMENT_GAP_CHARACTER + "AT",
-        #     20.3,
-        #     "RNA bulge for first R",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGATAA" + ALIGNMENT_GAP_CHARACTER + "AAT",
-        #     40.3,
-        #     "RNA bulge for PAM G",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
-        #     "GTTAGGACTATTAGCGTGATAAGAGTT",
-        #     20.3,
-        #     "DNA bulge for last R",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGR" + ALIGNMENT_GAP_CHARACTER + "RT",
-        #     "GTTAGGACTATTAGCGTGATAAGACGT",
-        #     20.3,
-        #     "DNA bulge for first R",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNG" + ALIGNMENT_GAP_CHARACTER + "RRT",
-        #     "GTTAGGACTATTAGCGTGATAAGTGGT",
-        #     40.3,
-        #     "DNA bulge for PAM G",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNN" + ALIGNMENT_GAP_CHARACTER + "GRRT",
-        #     "GTTAGGACTATTAGCGTGATAATGGGT",
-        #     40.3,
-        #     "DNA bulge for last PAM N",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATN" + ALIGNMENT_GAP_CHARACTER + "NGRRT",
-        #     "GTTAGGACTATTAGCGTGATAATGGGT",
-        #     40.3,
-        #     "DNA bulge for first PAM N",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGATAAGCAA",
-        #     22,
-        #     "mismatch in PAM T and first R",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGATAAGCCT",
-        #     40,
-        #     "mismatch in both PAM Rs",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGATAAAAGT",
-        #     40,
-        #     "mismatch in PAM G",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRR" + ALIGNMENT_GAP_CHARACTER + "T",
-        #     "GTTAGGACTATTAGCGTGATAATAGTT",
-        #     60.3,
-        #     "DNA bulge for last R and mismatch in PAM G",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTGA" + ALIGNMENT_GAP_CHARACTER + "AAGAAT",
-        #     6.51,
-        #     "RNA bulge just before PAM",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGAT" + ALIGNMENT_GAP_CHARACTER + "NNGRRT",
-        #     "GTTAGGACTATTAGCGTGATCAAGAAT",
-        #     6.7,
-        #     "DNA bulge just before PAM",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTG" + ALIGNMENT_GAP_CHARACTER + "TAAGAAT",
-        #     5.51,
-        #     "RNA bulge at position number 2 5' of PAM",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGTTCTNNGRRT",
-        #     9,
-        #     "Mismatches at positions number 2 and 3 5' of PAM",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GTTAGGACTATTAGCGCGATNNGRRT",
-        #     3,
-        #     "Mismatch at position number 4 5' of PAM",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GCTAGGACTATTAACGTGATNNGRRT",
-        #     1.43,
-        #     "Mismatch at position number 7 and 19 5' of PAM",
-        # ),
-        # (
-        #     "ACGTTAGGACTATTAGCGTGATNNGRRT",
-        #     "GGGTTAGGACTATTAGCGTGATNNGRRT",
-        #     0.2,
-        #     "Mismatch at positions number 21 and 22 5' of PAM",
-        # ),
-        # (
-        #     "GTTAGGACTATTAGCGTGATNNGRRT",
-        #     "G"
-        #     + ALIGNMENT_GAP_CHARACTER
-        #     + "TAGGACTATTAGCGTGA"
-        #     + ALIGNMENT_GAP_CHARACTER
-        #     + "AAGAAT",
-        #     12.15,
-        #     "RNA bulge just before PAM and near 5' end of guide triggers the extra 5 point 2 bulges penalty",
-        # ),
-        # (
-        #     "G" + ALIGNMENT_GAP_CHARACTER + "TTAGGACTATTAGCGTGATNNGRRT",
-        #     "GATTAGGACTATTAGCGTGA" + ALIGNMENT_GAP_CHARACTER + "AAGAAT",
-        #     12.33,
-        #     "RNA bulge just before PAM and DNA bulge near 5' end of guide triggers the extra 5 point 2 bulges penalty",
-        # ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGGT",
+            20,
+            "mismatch in final G of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGTG",
+            20,
+            "T in middle G position of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGCG",
+            20,
+            "C in middle G position of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGAG",
+            0.3,
+            "A in middle G position of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTGAA",
+            20.3,
+            "A in middle G position of PAM and mismatch in 3' position",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGTN" + ALIGNMENT_GAP_CHARACTER + "G",
+            20,
+            "RNA bulge over the first PAM G",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTN" + ALIGNMENT_GAP_CHARACTER + "GG",
+            "GTGTTCATCTTTGGTTTTGTNCGG",
+            20,
+            "DNA bulge between the PAM N and G",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNG" + ALIGNMENT_GAP_CHARACTER + "G",
+            "GTGTTCATCTTTGGTTTTGTNGTG",
+            20,
+            "DNA bulge between the two PAM Gs",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTTGAGGG",
+            6,
+            "mismatch in base just 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTT" + ALIGNMENT_GAP_CHARACTER + "TGGG",
+            5.51,
+            "RNA bulge at position number 2 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTTGATGGG",
+            9,
+            "Mismatches at positions number 2 and 3 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GTGTTCATCTTTGGTTATGTNGG",
+            3,
+            "Mismatch at position number 4 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "GCGTTCATCTTTGATTTTGTGGG",
+            1.43,
+            "Mismatch at position number 7 and 19 5' of PAM",
+        ),
+        (
+            "GTGTTCATCTTTGGTTTTGTNGG",
+            "G"
+            + ALIGNMENT_GAP_CHARACTER
+            + "GTTCATCTTTGGTTTTG"
+            + ALIGNMENT_GAP_CHARACTER
+            + "GGG",
+            12.15,
+            "RNA bulge just before PAM and near 5' end of guide triggers the extra 5 point 2 bulges penalty",
+        ),
+        (
+            "G" + ALIGNMENT_GAP_CHARACTER + "TGTTCATCTTTGGTTTTGTNGG",
+            "GATGTTCATCTTTGGTTTTG" + ALIGNMENT_GAP_CHARACTER + "GGG",
+            12.33,
+            "RNA bulge just before PAM and DNA bulge near 5' end of guide triggers the extra 5 point 2 bulges penalty",
+        ),
     ],
 )
 def test_sp_cas_off_target_score(
