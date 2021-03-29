@@ -317,7 +317,7 @@ jobs:
       - name: Extract package info # Adapted from: https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
         shell: bash
         run: |
-          echo '##[set-output name=package-name;]$(echo $(python .github/workflows/extract_package_info.py package_name))'
+          echo '##[set-output name=package-name-snake-case;]$(echo $(python .github/workflows/extract_package_info.py package_name_snake_case))'
           echo '##[set-output name=package-version;]$(echo $(python .github/workflows/extract_package_info.py package_version))'
         id: extract_package_info
 
@@ -330,7 +330,7 @@ jobs:
         run: python .github/workflows/extract_package_info.py install_from_dist
 
       - name: Confirm no import errors when opening package
-        run: python -c "import ${{ steps.extract_package_info.outputs.package-name }}"
+        run: python -c "import ${{ steps.extract_package_info.outputs.package-name-snake-case }}"
 
       - name: Cache Python dependencies
         uses: actions/cache@v2.1.4
@@ -484,7 +484,7 @@ jobs:
       - name: Extract package info # Adapted from: https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
         shell: bash
         run: |
-          echo '##[set-output name=package-name;]$(echo $(python .github/workflows/extract_package_info.py package_name))'
+          echo '##[set-output name=package-name-snake-case;]$(echo $(python .github/workflows/extract_package_info.py package_name_snake_case))'
           echo '##[set-output name=package-version;]$(echo $(python .github/workflows/extract_package_info.py package_version))'
         id: extract_package_info
 
@@ -497,7 +497,7 @@ jobs:
         run: python .github/workflows/extract_package_info.py install_from_dist
 
       - name: Confirm no import errors when opening package
-        run: python -c "import ${{ steps.extract_package_info.outputs.package-name }}"
+        run: python -c "import ${{ steps.extract_package_info.outputs.package-name-snake-case }}"
 
       - name: Cache Python dependencies
         uses: actions/cache@v2.1.4

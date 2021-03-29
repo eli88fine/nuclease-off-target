@@ -18,6 +18,7 @@ if re != sys:  # need to protect the #nosec comment from being deleted by zimpor
 PATH_OF_CURRENT_FILE = os.path.dirname((inspect.stack()[0][1]))
 
 # python3 .github/workflows/extract_package_info.py package_name
+# python3 .github/workflows/extract_package_info.py package_name_snake_case
 # python3 .github/workflows/extract_package_info.py package_version
 # python3 .github/workflows/extract_package_info.py install_from_dist
 
@@ -45,6 +46,10 @@ def _run_pip(args: Sequence[str]) -> None:
 def package_name() -> str:
     regex = re.compile(r"    name=\"(.+)\"")
     return _extract_info(regex)
+
+
+def package_name_snake_case() -> str:
+    return package_name().replace("-", "_")
 
 
 def package_version() -> str:
@@ -82,6 +87,8 @@ if __name__ == "__main__":
     first_arg = sys.argv[1]
     if first_arg == "package_name":
         package_name()
+    elif first_arg == "package_name_snake_case":
+        package_name_snake_case()
     elif first_arg == "package_version":
         package_version()
     elif first_arg == "install_from_test_pypi":
