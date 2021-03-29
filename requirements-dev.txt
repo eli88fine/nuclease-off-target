@@ -20,3 +20,4 @@ zest.releaser[recommended]==6.22.1
 pytest-mock==3.5.1
 pytest-timeout==1.4.2
 freezegun==1.1.0
+pytest-xdist==2.2.1
