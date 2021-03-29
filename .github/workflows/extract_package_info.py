@@ -23,7 +23,7 @@ PATH_OF_CURRENT_FILE = os.path.dirname((inspect.stack()[0][1]))
 # python3 .github/workflows/extract_package_info.py install_from_dist
 
 
-def _extract_info(regex: Pattern[str]) -> str:
+def _extract_info(regex: Pattern[str], print_match: bool = True) -> str:
     with open(
         os.path.join(PATH_OF_CURRENT_FILE, os.pardir, os.pardir, "setup.py"), "r"
     ) as in_file:
@@ -32,7 +32,8 @@ def _extract_info(regex: Pattern[str]) -> str:
         if match is None:
             raise NotImplementedError("A match in setup.py should always be found.")
         output = match.group(1)
-        print(output)  # allow-print
+        if print_match:
+            print(output)  # allow-print
         return output
 
 
@@ -43,13 +44,15 @@ def _run_pip(args: Sequence[str]) -> None:
         sys.exit(results.returncode)
 
 
-def package_name() -> str:
+def package_name(print_match: bool = True) -> str:
     regex = re.compile(r"    name=\"(.+)\"")
-    return _extract_info(regex)
+    return _extract_info(regex, print_match=print_match)
 
 
 def package_name_snake_case() -> str:
-    return package_name().replace("-", "_")
+    converted_to_snake_case = package_name(print_match=False).replace("-", "_")
+    print(converted_to_snake_case)  # allow-print
+    return converted_to_snake_case
 
 
 def package_version() -> str:
