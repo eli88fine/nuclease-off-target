@@ -20,7 +20,7 @@ setup(
         "beautifulsoup4>=4.9.3",
         "parasail>=1.2",
         "immutabledict>=1.2.0",
-        "stdlib_utils>=0.3.11",
+        "stdlib_utils>=0.4.3",
         "immutable_data_validation>=0.2.1",
     ],
     zip_safe=False,
