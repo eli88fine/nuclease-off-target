@@ -12,7 +12,7 @@ on:
     - cron: '0 5 * * *'
   push:
     branches:
-      - master
+      - main
       - development
   pull_request:
 
@@ -51,6 +51,18 @@ jobs:
           python -c "import sys; print(sys.version)"
           python -m venv venv
 
+      - name: Cache Pre-commit hooks
+        uses: actions/cache@v2.1.4
+        env:
+          cache-name: cache-pre-commit-hooks
+        if: matrix.IS_FASTEST_JOB == true
+        with:
+          path: ./.precommit_cache
+          key: ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-
+
+
       - name: Activate virtual environment (Linux/MacOS)
         if: runner.os == 'Linux'
         run: . venv/bin/activate
@@ -62,6 +74,17 @@ jobs:
         run: |
           pip -V
           pip freeze
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v2.1.4
+        env:
+          cache-name: cache-pip
+        with:
+          path: ~/.cache/pip
+          key: ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-${{ hashFiles('requirements*.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-
+
       - name: Install Dev Dependencies
         run: pip install -r requirements-dev.txt
 
@@ -72,6 +95,8 @@ jobs:
 
       - name: Run pre-commit hooks
         if: matrix.IS_FASTEST_JOB == true
+        env:
+          PRE_COMMIT_HOME: ./.precommit_cache
         # only enable pre-commit on the fastest job
         run: |
           pre-commit install
@@ -79,11 +104,11 @@ jobs:
 
       - name: Run Tests with randomly generated seed
         if: github.event.inputs.randomlyseed == ''
-        run: pytest -xsvv --cov-report=xml --full-ci --include-slow-tests
+        run: pytest -xsvv --cov-report=xml --full-ci --include-slow-tests -n auto
 
       - name: Run Tests with supplied pytest-randomly seed
         if: github.event.inputs.randomlyseed != ''
-        run: pytest -xsvv --cov-report=xml --randomly-seed=${{ github.event.inputs.randomlyseed }} --full-ci --include-slow-tests
+        run: pytest -xsvv --cov-report=xml --full-ci --include-slow-tests -n auto --randomly-seed=${{ github.event.inputs.randomlyseed }}
 
       - name: Archive Python code coverage
         if: ${{ failure() }}
@@ -99,6 +124,12 @@ jobs:
           pip install -r docs/requirements.txt
           SPHINXOPTS="-W" make --directory=docs html # the -W flag treats warnings as errors to cause build failures
 
+      - name: Confirm no modifications to the repository files occurred when running the test suite
+        if: matrix.IS_FASTEST_JOB == true # only enable pre-commit on the fastest job
+        env:
+          PRE_COMMIT_HOME: ./.precommit_cache
+        run: pre-commit run git-dirty -a
+
       - name: Upload coverage to Codecov
         # only upload coverage from fastest job
         if: matrix.IS_FASTEST_JOB == true
@@ -113,6 +144,5 @@ jobs:
           fail_ci_if_error: true
 
       - name: Run prerelease to check packaging compatibilty
-        if: matrix.IS_FASTEST_JOB == true
         run: python3 prerelease.py --no-input
 
