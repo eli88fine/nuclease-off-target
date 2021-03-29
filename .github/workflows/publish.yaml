@@ -48,6 +48,17 @@ jobs:
           python -c "import sys; print(sys.version)"
           python -m venv venv
 
+      - name: Cache Pre-commit hooks
+        uses: actions/cache@v2.1.4
+        env:
+          cache-name: cache-pre-commit-hooks
+        if: matrix.IS_FASTEST_JOB == true
+        with:
+          path: ./.precommit_cache
+          key: ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-
+
 
       - name: Extract branch name # Adapted from: https://stackoverflow.com/questions/58033366/how-to-get-current-branch-within-github-actions
         if: runner.os == 'Linux'
@@ -100,6 +111,8 @@ jobs:
 
       - name: Run pre-commit hooks
         if: matrix.IS_FASTEST_JOB == true
+        env:
+          PRE_COMMIT_HOME: ./.precommit_cache
         run: |
           pre-commit install
           pre-commit run -a
@@ -127,7 +140,13 @@ jobs:
           SPHINXOPTS="-W" make --directory=docs html # the -W flag treats warnings as errors to cause build failures
 
       - name: Run prerelease to check packaging compatibilty
-        run: prerelease --no-input
+        run: python3 prerelease.py --no-input
+
+      - name: Confirm no modifications to the repository files occurred when running the test suite
+        if: matrix.IS_FASTEST_JOB == true # only enable pre-commit on the fastest job
+        env:
+          PRE_COMMIT_HOME: ./.precommit_cache
+        run: pre-commit run git-dirty -a
 
       - name: Build package for release
         run: |
