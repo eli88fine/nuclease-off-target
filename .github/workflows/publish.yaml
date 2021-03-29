@@ -200,6 +200,16 @@ jobs:
         run: |
           pip -V
           pip freeze
+      - name: Cache Python dependencies
+        uses: actions/cache@v2.1.4
+        env:
+          cache-name: cache-pip
+        with:
+          path: ~/.cache/pip
+          key: ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-${{ hashFiles('requirements*.txt') }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.python-version }}-build-${{ env.cache-name }}-
+
       - name: Install Dev Dependencies
         run: pip install -r requirements-dev.txt
 
