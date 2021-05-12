@@ -261,7 +261,7 @@ jobs:
 
       - name: Sleep for 360 seconds to allow Test PyPI Index to update before proceeding to the next step
         if: github.event.inputs.dry_run != '1'
-        uses: juliangruber/sleep-action@v1
+        uses: juliangruber/sleep-action@v1.0.1
         with:
           time: 360s
 
@@ -427,7 +427,7 @@ jobs:
 
       - name: Sleep for 360 seconds to allow PyPI Index to update before proceeding to the next step
         if: github.event.inputs.dry_run != '1'
-        uses: juliangruber/sleep-action@v1
+        uses: juliangruber/sleep-action@v1.0.1
         with:
           time: 360s
 
